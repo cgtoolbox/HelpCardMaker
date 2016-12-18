@@ -193,7 +193,7 @@ class MainPanel(QtGui.QFrame):
         self.toolbar.addWidget(wSep())
 
         self.title_main_btn = ToolIcon("header", "%HCM_W%_title:1")
-        self.title_main_btn.setToolTip("Add main title")
+        self.title_main_btn.setToolTip("Add main title from selected node")
         self.toolbar.addWidget(self.title_main_btn)
 
         self.title2_btn = ToolIcon("title1", "%HCM_W%_title:2")
@@ -201,7 +201,7 @@ class MainPanel(QtGui.QFrame):
         self.toolbar.addWidget(self.title2_btn)
 
         self.title3_btn = ToolIcon("title2", "%HCM_W%_title:3")
-        self.title3_btn.setToolTip("Add title 3")
+        self.title3_btn.setToolTip("Add nevigation menu entry")
         self.toolbar.addWidget(self.title3_btn)
 
         self.text_block_btn = ToolIcon("text_block", "%HCM_W%_text:block")
@@ -231,6 +231,10 @@ class MainPanel(QtGui.QFrame):
         self.dotted_list_btn = ToolIcon("bullet", "%HCM_W%_bullet")
         self.dotted_list_btn.setToolTip("Add bullet text")
         self.toolbar.addWidget(self.dotted_list_btn)
+
+        self.image_btn = ToolIcon("image", "%HCM_W%_image")
+        self.image_btn.setToolTip("Add image from disk")
+        self.toolbar.addWidget(self.image_btn)
 
         self.separator_btn = ToolIcon("sep", "%HCM_W%_separator")
         self.separator_btn.setToolTip("Add horizontal separator line")
@@ -318,8 +322,27 @@ class MainPanel(QtGui.QFrame):
         elif w_type == "textbox":
             w = TextBox(parent=self)
 
+        elif w_type == "image":
+
+            img = QtGui.QFileDialog.getOpenFileName(filter="Image (*.png *.jpg)")
+            img = img[0]
+            if not img: return
+
+            w = ImageFromDisk(img=img, parent=self)
+
         elif w_type.startswith("title:"):
             size = int(w_type.split(':')[-1])
+
+            if size == 1:
+                if not hou.selectedNodes():
+                    hou.ui.displayMessage("Nothing selected")
+                    return
+                main_title = [w for w in self.ui_widgets \
+                              if isinstance(w, Title) and w.size == 1]
+                if main_title:
+                    hou.ui.displayMessage("Help card contains already a main title")
+                    return
+
             w = Title(size=size, parent=self)
 
         elif w_type == "params":
@@ -493,13 +516,19 @@ class Title(QtGui.QWidget, WidgetInterface):
 
         self.text = QtGui.QLineEdit()
         self.text.setAcceptDrops(False)
+        self.extra_infos = ""
         
         font_size = 10
         if size == 1:
             font_size = 16
             sel = hou.selectedNodes()
-            if sel:
-                text = sel[0].type().name().replace('_', ' ')
+            sel = sel[0]
+            text = sel.type().name().replace('_', ' ')
+            t = sel.type()
+            context = t.category().name().lower()
+            if context == "object":
+                context = "obj"
+            self.extra_infos += "#context: " + context + '\n'
 
         elif size == 2:
             font_size = 14
@@ -512,7 +541,8 @@ class Title(QtGui.QWidget, WidgetInterface):
                                          border: 0px;
                                          color: black;
                                          font-size: """ + str(font_size) + """pt;
-                                         font-family: Time;}
+                                         font-family: Arial;;
+                                         font-weight: bold}
                               QLineEdit:hover{background-color: rgba(0,0,80,16)}""")
         layout.addWidget(self.text)
         
@@ -540,7 +570,14 @@ class Title(QtGui.QWidget, WidgetInterface):
 
     def output(self):
 
-        return '\n' + '=' * self.size + ' ' + self.text.text() + \
+        if self.size == 3:
+            return "\n@" + self.text.text().replace(' ', '') + ' ' + \
+                   self.text.text() + '\n'
+        if self.size == 1:
+            return '= ' + self.text.text() + \
+                   ' =\n' + self.extra_infos
+
+        return '=' * self.size + ' ' + self.text.text() + \
                ' ' + '=' * self.size +'\n'
 
 class Bullet(QtGui.QWidget, WidgetInterface):
@@ -1041,3 +1078,51 @@ class TextBox(QtGui.QWidget, WidgetInterface):
         return '\n:box:\n    #display: bordered ' + \
                self.color_str + '\n    ' + \
                self.text.text()
+
+class ImageFromDisk(QtGui.QWidget, WidgetInterface):
+
+    def __init__(self, img="", idx=0, parent=None):
+        super(ImageFromDisk, self).__init__(parent=parent)
+
+        self.top_w = parent
+        self.idx = idx
+        self.setAcceptDrops(True)
+        self.setAutoFillBackground(True)
+        self.img_file = img
+
+        layout = QtGui.QHBoxLayout()
+
+        pixmap = QtGui.QPixmap()
+        pixmap.load(self.img_file)
+
+        self.img = QtGui.QLabel("")
+        self.img.setFixedHeight(pixmap.height())
+        self.img.setFixedWidth(pixmap.width())
+        self.img.setPixmap(pixmap)
+        layout.addWidget(self.img)
+
+        delete_btn = QtGui.QToolButton()
+        delete_btn.setStyleSheet("""QToolButton{background-color:
+                                    transparent;border: 0px}""")
+        delete_btn.setIcon(get_icon("close"))
+        delete_btn.clicked.connect(self.remove_me)
+        layout.addWidget(delete_btn)
+
+        layout.setContentsMargins(0,0,0,0)
+        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
+                           QtGui.QSizePolicy.Maximum)
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        self.setLayout(layout)
+
+    def dropEvent(self, event):
+        return WidgetInterface.dropEvent(self, event)
+
+    def dragEnterEvent(self, event):
+        return WidgetInterface.dragEnterEvent(self, event)
+
+    def dragMoveEvent(self, event):
+        return WidgetInterface.dragMoveEvent(self, event)
+
+    def output(self):
+
+        return "\n[Image:"+ self.img_file + "]\n"
