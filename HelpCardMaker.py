@@ -17,7 +17,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details. http://www.gnu.org/licenses/
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 import hou
 import os
