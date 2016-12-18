@@ -201,7 +201,7 @@ class MainPanel(QtGui.QFrame):
         self.toolbar.addWidget(self.title2_btn)
 
         self.title3_btn = ToolIcon("title2", "%HCM_W%_title:3")
-        self.title3_btn.setToolTip("Add nevigation menu entry")
+        self.title3_btn.setToolTip("Add navigation menu entry")
         self.toolbar.addWidget(self.title3_btn)
 
         self.text_block_btn = ToolIcon("text_block", "%HCM_W%_text:block")
