@@ -324,7 +324,7 @@ class MainPanel(QtGui.QFrame):
 
         elif w_type == "image":
 
-            img = QtGui.QFileDialog.getOpenFileName(filter="Image (*.png *.jpg)")
+            img = QtGui.QFileDialog.getOpenFileName(filter="Png (*.png)")
             img = img[0]
             if not img: return
 
@@ -1089,11 +1089,15 @@ class ImageFromDisk(QtGui.QWidget, WidgetInterface):
         self.setAcceptDrops(True)
         self.setAutoFillBackground(True)
         self.img_file = img
+        self.img_name = os.path.split(img)[1]
+        self.section_name = "HELPCARD_" + self.img_name
+        with open(img, 'rb') as f: data = f.read()
+        self.img_data = data
 
         layout = QtGui.QHBoxLayout()
 
         pixmap = QtGui.QPixmap()
-        pixmap.load(self.img_file)
+        pixmap.loadFromData(self.img_data)
 
         self.img = QtGui.QLabel("")
         self.img.setFixedHeight(pixmap.height())
@@ -1123,6 +1127,24 @@ class ImageFromDisk(QtGui.QWidget, WidgetInterface):
     def dragMoveEvent(self, event):
         return WidgetInterface.dragMoveEvent(self, event)
 
+    def _save_img_to_asset(self, definition):
+        """ Called when only output() is called, save the image data
+            to an HDA section to fetch the image from.
+        """ 
+        section = definition.sections().get(self.section_name)
+        if not section:
+            section= definition.addSection(self.section_name,
+                                           self.img_data)
+        else:
+            section.setContents(self.img_data)
+
     def output(self):
 
-        return "\n[Image:"+ self.img_file + "]\n"
+        node = hou.selectedNodes()[0]
+        definition = node.type().definition()
+
+        self._save_img_to_asset(definition)
+
+        tag = node.type().nameWithCategory() + "?"
+
+        return "\n[Image:opdef:/"+ tag + self.section_name + "]\n"
