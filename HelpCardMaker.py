@@ -1,4 +1,3 @@
-
 # Houdini Help card maker
 # Compatibility => Houdini 14, 15, 15.5
 
@@ -17,10 +16,11 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details. http://www.gnu.org/licenses/
 
-VERSION = "0.1.2"
+VERSION = "0.9.0"
 
 import hou
 import os
+from collections import OrderedDict
 
 from PySide import QtGui
 from PySide import QtCore
@@ -53,8 +53,26 @@ class BoxColors(object):
     BLUE = QtGui.QColor(210,230,255)
     ORANGE = QtGui.QColor(250,235,210)
     
-class WidgetInterface(object):
+class TitleType(object):
+    
+    TITLE = 11
+    ENTRY_MENU = 12
 
+CONTEXT_REMAP = {
+                 "sop":"Geometry node",
+                 "object":"Object node",
+                 "obj":"Object node",
+                 "cop2":"Compositing node",
+                 "vop":"VOP node",
+                 "particle": "Particle node",
+                 "pop": "POP node",
+                 "dop": "DOP node",
+                 "chop": "CHOP node",
+                }
+
+class WidgetInterface(object):
+    """ Help widgets interface for drag and drop system implementation
+    """
     def dragEnterEvent(self, event):
 
         return
@@ -77,7 +95,9 @@ class WidgetInterface(object):
         self.top_w.remove_widget(self)
 
 class ToolIcon(QtGui.QLabel):
-
+    """ Custom flat icon which stats the drag system, used in 
+        toolbar widget only.
+    """
     def __init__(self, icon="", widget_type="", parent=None):
         super(ToolIcon, self).__init__(parent=parent)
 
@@ -97,19 +117,41 @@ class ToolIcon(QtGui.QLabel):
         drag.setHotSpot(event.pos() - self.rect().topLeft())
         drag.start(QtCore.Qt.MoveAction)
 
-class CLabel(QtGui.QLabel):
+class CLabel(QtGui.QWidget):
     """ Utilitiy label with output() method to be compatible with
-        other help widgets
+        other help widgets.
     """
-    def __init__(self, text="", decorator="===", parent=None):
-        super(CLabel, self).__init__(text, parent=parent)
+    def __init__(self, text="", show_btn=True, parent=None):
+        super(CLabel, self).__init__(parent=parent)
+
+        self.top_w = parent
+
+        layout = QtGui.QHBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignLeft)
+        self.lbl = QtGui.QLabel(text)
+        layout.addWidget(self.lbl)
+
+        delete_btn = QtGui.QToolButton()
+        delete_btn.setStyleSheet("""QToolButton{background-color:
+                                    transparent;border: 0px}""")
+        delete_btn.setIcon(get_icon("close"))
+        delete_btn.clicked.connect(self.remove_me)
+        layout.addWidget(delete_btn)
+
+        self.setLayout(layout)
+
+    def remove_me(self):
+
+        self.top_w.remove_widget(self)
 
     def output(self):
 
-        return self.text()
+        return self.lbl.text() + '\n'
 
 class ColorChooser(QtGui.QDialog):
-
+    """ Custom color picker with button. Parse the given color_class
+        to fetch which colors are available.
+    """
     def __init__(self, color_class=BoxColors, parent=None):
         super(ColorChooser, self).__init__(parent=parent)
 
@@ -146,7 +188,8 @@ class ColorChooser(QtGui.QDialog):
         self.close()
 
 class wSep(QtGui.QFrame):
-
+    """ smal vertival separator widget for toolbar
+    """
     def __init__(self):
         QtGui.QFrame.__init__(self)
         self.setFrameStyle(QtGui.QFrame.VLine)
@@ -156,21 +199,32 @@ class wSep(QtGui.QFrame):
 
 # MAIN INTERFACE
 class MainPanel(QtGui.QFrame):
-
+    """ Main UI for pypanel creation
+    """
     def __init__(self, parent=None):
         super(MainPanel, self).__init__(parent=parent)
 
         self.main_layout = QtGui.QVBoxLayout()
         self.main_layout.setSpacing(5)
-        self.main_layout.addWidget(QtGui.QLabel("Help Card Maker " + VERSION))
 
         # toolbar
         self.toolbar = QtGui.QHBoxLayout()
         self.toolbar.setAlignment(QtCore.Qt.AlignLeft)
 
+        self.read_help_btn = QtGui.QToolButton()
+        self.read_help_btn.setStyleSheet("""QToolButton{border: None;
+                                             background-color: None}""")
+        self.read_help_btn.setIcon(get_icon("open_card"))
+        self.read_help_btn.setFixedHeight(34)
+        self.read_help_btn.setFixedWidth(34)
+        self.read_help_btn.setIconSize(QtCore.QSize(32,32))
+        self.read_help_btn.clicked.connect(self.read_helpcard)
+        self.read_help_btn.setToolTip("Read existing help card from selected asset")
+        self.toolbar.addWidget(self.read_help_btn)
+
         self.apply_help_btn = QtGui.QToolButton()
         self.apply_help_btn.setStyleSheet("""QToolButton{border: None;
-                                           background-color: None}""")
+                                             background-color: None}""")
         self.apply_help_btn.setIcon(get_icon("apply"))
         self.apply_help_btn.setFixedHeight(34)
         self.apply_help_btn.setFixedWidth(34)
@@ -186,18 +240,18 @@ class MainPanel(QtGui.QFrame):
         self.clear_btn.setFixedHeight(34)
         self.clear_btn.setFixedWidth(34)
         self.clear_btn.setIconSize(QtCore.QSize(32,32))
-        self.clear_btn.clicked.connect(self.clearn_widgets)
+        self.clear_btn.clicked.connect(self.clean_widgets)
         self.clear_btn.setToolTip("Clear Elements")
         self.toolbar.addWidget(self.clear_btn)
 
         self.toolbar.addWidget(wSep())
 
-        self.title_main_btn = ToolIcon("header", "%HCM_W%_title:1")
-        self.title_main_btn.setToolTip("Add main title from selected node")
+        self.title_main_btn = ToolIcon("header", "%HCM_W%_maintitle")
+        self.title_main_btn.setToolTip("Add main title + icon from selected node")
         self.toolbar.addWidget(self.title_main_btn)
 
         self.title2_btn = ToolIcon("title1", "%HCM_W%_title:2")
-        self.title2_btn.setToolTip("Add title 2")
+        self.title2_btn.setToolTip("Add title")
         self.toolbar.addWidget(self.title2_btn)
 
         self.title3_btn = ToolIcon("title2", "%HCM_W%_title:3")
@@ -275,17 +329,20 @@ class MainPanel(QtGui.QFrame):
         self.main_layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(self.main_layout)
 
-    def clearn_widgets(self):
-
-        r = hou.ui.displayMessage("Clear all items ?", buttons=["Yes", "Cancel"])
-        if r == 1: return
+    def clean_widgets(self, show_popup=True):
+        """ Remove all widgets from the scroll area.
+        """
+        if show_popup:
+            r = hou.ui.displayMessage("Clear all items ?", buttons=["Yes", "Cancel"])
+            if r == 1: return
 
         while len(self.ui_widgets) != 0:
             for w in self.ui_widgets:
                 w.remove_me()
 
     def remove_widget(self, w):
-
+        """ Remove a given widget from scroll area
+        """
         w.setParent(None)
         self.scroll_lay.removeWidget(w)
 
@@ -299,7 +356,9 @@ class MainPanel(QtGui.QFrame):
             w.idx = i
 
     def insert_widget(self, w_type, idx):
-        
+        """ Insert a widget to the scroll area, w_type is a formated string
+            fetched from a drop Mimedata.
+        """
         w = None
         if w_type == "text:block":
             w = TextBlock(parent=self)
@@ -330,20 +389,33 @@ class MainPanel(QtGui.QFrame):
 
             w = ImageFromDisk(img=img, parent=self)
 
+        elif w_type == "maintitle":
+
+            selection = hou.selectedNodes()
+            if not selection:
+                hou.ui.displayMessage("Nothing selected")
+                return
+            main_title = [w for w in self.ui_widgets \
+                            if isinstance(w, MainTitle)]
+            if main_title:
+                hou.ui.displayMessage("Help card contains already a main title")
+                return
+            selection = selection[0]
+
+            if not selection.type().definition():
+                hou.ui.displayMessage("Selected node is not a valid asset")
+                return
+            idx = 0
+            w = MainTitle(asset=selection, parent=self)
+
         elif w_type.startswith("title:"):
+
             size = int(w_type.split(':')[-1])
+            title_type = TitleType.ENTRY_MENU
+            if size == 2:
+                title_type = TitleType.TITLE
 
-            if size == 1:
-                if not hou.selectedNodes():
-                    hou.ui.displayMessage("Nothing selected")
-                    return
-                main_title = [w for w in self.ui_widgets \
-                              if isinstance(w, Title) and w.size == 1]
-                if main_title:
-                    hou.ui.displayMessage("Help card contains already a main title")
-                    return
-
-            w = Title(size=size, parent=self)
+            w = Title(title_type=title_type, parent=self)
 
         elif w_type == "params":
             sel = hou.selectedNodes()
@@ -367,11 +439,18 @@ class MainPanel(QtGui.QFrame):
             w.idx = i
 
     def get_help_str(self):
-
-        return '\n'.join([w.output() for w in self.ui_widgets])
+        """ Fetch all the output help string from widgets
+        """
+        return "//HELP CARD MAKER " + VERSION + '\n' + \
+               '\n'.join([w.output() for w in self.ui_widgets]) + \
+               "\n\n\n//END"
 
     def apply_help(self):
-
+        """ Apply the sideFX help-wiki formatted strings to the section "Help" of
+            the selected asset.
+            This also save the current definition of the asset and switch it to 
+            'allow editing of contents' mode beforehand.
+        """
         sel = hou.selectedNodes()
         if not sel:
             hou.ui.displayMessage("Nothing selected")
@@ -391,24 +470,195 @@ class MainPanel(QtGui.QFrame):
         if r == 1: return
 
         definition = node.type().definition()
+        sections = definition.sections()
         if not definition:
             hou.ui.displayMessage("Selected node is not an digital asset")
             return
 
         node.allowEditingOfContents()
-        help = definition.sections().get("Help", None)
+        help = sections.get("Help", None)
         if not help:
             help = definition.addSection("Help", "")
 
         help.setContents(self.get_help_str())
 
+        # clean unused help_card sections ( for old images )
+        current_imgs = [w.section_name for w in self.ui_widgets \
+                        if isinstance(w, ImageFromDisk)]
+
+        current_img_sections = [k for k in sections.keys() if \
+                                k.startswith("HELP_CARD_IMG_")]
+
+        for s in current_img_sections:
+            if s not in current_imgs:
+                sections[s].destroy()
+
         definition.save(definition.libraryFilePath())
         hou.ui.displayMessage("Help card updated !")
-
         hou.ui.displayNodeHelp(node.type())
 
-    def show_help(self):
+    def read_helpcard(self):
+        """ Read the current asset help card (if generated with Help Card Maker only)
+        """
+        sel = hou.selectedNodes()
+        if not sel:
+            hou.ui.displayMessage("Nothing selected",
+                                  severity=hou.severityType.Error)
+            return
 
+        sel = sel[0]
+        sel_def = sel.type().definition()
+        if not sel_def:
+            hou.ui.displayMessage("Selected node is not a valid asset",
+                                  severity=hou.severityType.Error)
+            return
+
+        help = sel_def.sections().get("Help")
+        if not help:
+            hou.ui.displayMessage("No help card found in this asset",
+                                  severity=hou.severityType.Error)
+            return
+
+        help = help.contents()
+        if not help.startswith("//HELP CARD MAKER"):
+            hou.ui.displayMessage("Can't read current asset's help card",
+                                  help="Help card was not created by help card maker",
+                                  severity=hou.severityType.Error)
+            return
+
+        r = hou.ui.displayMessage("Load current asset help card ?",
+                                  buttons=["Yes", "Cancel"])
+        if r == 1:
+            return
+
+        self.clean_widgets(show_popup=False)
+
+        self.widgets_infos = OrderedDict()
+        cur_cluster = True
+        help = [n for n in help.split('\n') if n not in ['\n', '']]
+
+        for i, data in enumerate(help):
+
+            if i == 0: continue  # skip header
+
+            if data.startswith('//'):
+                cur_cluster = data.replace('//', '').replace('\n', '')
+                cur_cluster += '_' + str(i - 1)
+                self.widgets_infos[cur_cluster] = []
+                continue
+            
+            self.widgets_infos[cur_cluster].append(data)
+
+        for k in self.widgets_infos.keys():
+            self.apply_cluster(k, sel)
+
+    def apply_cluster(self, cluster, asset):
+        """ Apply a given "help cluster" and create a help widget accordingly
+            (help cluster is info about the widget, type and data).
+        """
+        w = None
+        data = self.widgets_infos[cluster]
+        idx = 0
+        cluster = cluster.split('_')[0]
+        if cluster == "MAINTITLE":
+ 
+            text = data[0].replace("= ", '').replace(" =", '').replace('\n', '')
+            context = data[2].replace("#context: ", '').replace('\n', '')
+            icon = data[2].split('?')[-1].replace('\n', '')
+            icon_section = asset.type().definition().sections().get(icon)
+            icon_data = None
+            if icon_section:
+                icon_data = icon_section.contents()
+            w = MainTitle(text=text, context=context,
+                          icon=icon, icon_data=icon_data,
+                          asset=asset, parent=self)
+
+        elif cluster == "TEXTBLOCK":
+            text = '\n'.join(data)
+            w = TextBlock(text=text, parent=self)
+
+        elif cluster == "TIP":
+            text = "".join([ n[4:] for n in data if not n.startswith("    #")])
+            w = Tips(text=text, parent=self)
+
+        elif cluster == "WARNING":
+            text = "".join([ n[4:] for n in data[2:]])
+            w = Warning(text=text, parent=self)
+
+        elif cluster == "NOTE":
+            text = "".join([ n[4:] for n in data[2:]])
+            w = Note(text=text, parent=self)
+
+        elif cluster == "SEPARATOR":
+            w = Separator(parent=self)
+
+        elif cluster == "TITLEENTIRYMENU":
+            text = data[0].split(' ', 1)[-1]
+            w = Title(title_type=TitleType.ENTRY_MENU, text=text, parent=self)
+
+        elif cluster == "TITLE":
+            text = data[0].replace("== ", '').replace(" ==", '')
+            w = Title(title_type=TitleType.TITLE, text=text, parent=self)
+
+        elif cluster == "BULLET":
+
+            cleaned_data = []
+            for _d in data:
+                if _d.startswith("* "):
+                    cleaned_data.append(_d[2:])
+                else:
+                    cleaned_data.append(_d)
+
+            text = "".join(cleaned_data)
+            w = Bullet(text=text, parent=self)
+
+        elif cluster == "TEXTBOX":
+            color_str = data[1].split(' ')[-1]
+            text = "".join([n[4:] for n in data[2:]])
+            w = TextBox(text=text, color_str=color_str, parent=self)
+
+        elif cluster == "IMG":
+
+            img = data[0].split('?')[-1].replace(']', '')
+            img_data = asset.type().definition().sections().get(img)
+            if not img_data:
+                print("Reading Error: " + img + " data not found in asset sections.")
+                return
+            img_data = img_data.contents()
+            img = img.replace("HELP_CARD_IMG_", "")
+            w = ImageFromDisk(img=img, img_data=img_data, parent=self)
+
+        elif cluster == "PARAMETERS":
+
+            parms_dict = {"_NO_FOLDER_":[]}
+            cur_folder = "_NO_FOLDER_"
+
+            for i in range(len(data) - 1):
+
+                d = data[i]
+                next_d = data[i + 1]
+
+                if d == "@parameters": continue
+                if d.startswith("    "): continue
+
+                if d.endswith(':') and next_d.startswith("    "):
+                    parms_dict[cur_folder].append([d[:-1], next_d[4:]])
+                else:
+                    cur_folder = d
+                    if not cur_folder in parms_dict.keys():
+                        parms_dict[cur_folder] = []
+
+                w = Parameters(node=asset, parms_dict=parms_dict, parent=self)
+
+        if w:
+            w.idx = idx
+            self.scroll_lay.addWidget(w)
+            self.ui_widgets.append(w)
+            idx += 1
+
+    def show_help(self):
+        """ Show little help dialog box about how to use HelpCardMaker
+        """
         message = "Houdini Help card maker, version:" + VERSION + "\n\n"
         message += "Created by Guillaume Jobst\n\n"
         message += "More infos:\ncontact@guillaume-j.com\nwww.guillaume-j.com"
@@ -421,7 +671,9 @@ class MainPanel(QtGui.QFrame):
         w.exec_()
 
 class ScrollWidget(QtGui.QWidget):
-
+    """ Custom widget used in scroll area which supports drag an drop
+        system for helkp widgets creation
+    """
     def __init__(self, parent=None):
         super(ScrollWidget, self).__init__(parent=parent)
 
@@ -446,7 +698,9 @@ class ScrollWidget(QtGui.QWidget):
 
 # HELP WIDGETS
 class TextBlock(QtGui.QWidget, WidgetInterface):
-
+    """ Basic automatically resizable text block used for multilines
+        string texts.
+    """
     def __init__(self, text="Text", idx=0, show_btn=True, parent=None):
         super(TextBlock, self).__init__(parent=parent)
 
@@ -460,7 +714,7 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
         self.text = QtGui.QTextEdit()
         self.text.setAcceptDrops(False)
         self.text.setPlainText(text)
-        self.text.setMaximumHeight(20)
+        self.text.setMaximumHeight(20 * len(text.split('\n')))
         self.text.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.text.setWordWrapMode(QtGui.QTextOption.WordWrap)
         self.setStyleSheet("""QTextEdit{background-color: transparent;
@@ -499,16 +753,141 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
 
     def output(self):
 
-        return '\n' + self.text.toPlainText() + '\n'
+        return '\n\n//TEXTBLOCK\n\n\n' + self.text.toPlainText() + '\n'
+
+class MainTitle(QtGui.QWidget, WidgetInterface):
+
+    def __init__(self, text="", idx=0, context="", asset=None,
+                 icon="", icon_data=None, parent=None):
+        super(MainTitle, self).__init__(parent=parent)
+
+        self.top_w = parent
+        self.idx = idx
+
+        layout = QtGui.QHBoxLayout()
+        text_layout = QtGui.QVBoxLayout()
+
+        self.setAcceptDrops(True)
+
+        self.text = QtGui.QLineEdit()
+        self.text.setAcceptDrops(False)
+
+        self.extra_infos = ""
+        self.asset = asset 
+        self.main_icon_section = icon
+        self.main_icon_data = icon_data
+
+        if not text:
+            t = self.asset.type()
+            text = t.name().replace('_', ' ')
+            context = t.category().name().lower()
+
+        if not context:
+            if context == "object":
+                context = "obj"
+
+        self.extra_infos += "#type: node\n#context: " + context + '\n'
+
+        if not self.main_icon_data:
+            self.fetch_icon()
+
+        icon_pix = QtGui.QPixmap()
+        icon_pix.loadFromData(self.main_icon_data)
+        icon_lbl = QtGui.QLabel("")
+        icon_lbl.setFixedHeight(32)
+        icon_lbl.setFixedWidth(32)
+        icon_lbl.setPixmap(icon_pix)
+        layout.addWidget(icon_lbl)
+
+        self.text.setText(text)
+        self.setStyleSheet("""QLineEdit{background-color: transparent;
+                                         border: 0px;
+                                         color: black;
+                                         font-size: 16pt;
+                                         font-family: Arial;;
+                                         font-weight: bold}
+                              QLineEdit:hover{background-color: rgba(0,0,80,16)}""")
+        text_layout.addWidget(self.text)
+
+        k = self.asset.type().category().name().lower()
+        context_txt = CONTEXT_REMAP.get(k, "Unknown category node")
+        context_lbl = QtGui.QLabel(context_txt)
+        context_lbl.setStyleSheet("""QLabel{color: grey;
+                                            font-size: 10pt;
+                                            font-family: Arial}""")
+        text_layout.addWidget(context_lbl)
+
+        layout.addLayout(text_layout)
+        
+        delete_btn = QtGui.QToolButton()
+        delete_btn.setStyleSheet("""QToolButton{background-color:
+                                    transparent; border: 0px}""")
+        delete_btn.setIcon(get_icon("close"))
+        delete_btn.clicked.connect(self.remove_me)
+        layout.addWidget(delete_btn)
+
+        layout.setContentsMargins(0,0,0,0)
+        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
+                           QtGui.QSizePolicy.Maximum)
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        self.setLayout(layout)
+
+    def dropEvent(self, event):
+        return WidgetInterface.dropEvent(self, event)
+
+    def dragEnterEvent(self, event):
+        return WidgetInterface.dragEnterEvent(self, event)
+
+    def dragMoveEvent(self, event):
+        return WidgetInterface.dragMoveEvent(self, event)
+
+    def fetch_icon(self):
+        """ Fetch the selected node's icon binary data
+        """
+        node_type = self.asset.type()
+        node_def = node_type.definition()
+        qicon = hou.ui.createQtIcon(node_def.icon())
+        pix = qicon.pixmap(32,32).toImage()
+        data = QtCore.QByteArray()
+        buffer = QtCore.QBuffer(data)
+        buffer.open(QtCore.QIODevice.WriteOnly)
+        pix.save(buffer, "PNG")
+        
+        self.main_icon_section = "HELP_CARD_ICO_" + node_def.nodeTypeName() + ".png"
+        self.main_icon_data = str(buffer.data())
+
+    def save_icon(self):
+        """ Save icon binary data to asset extra files, also update the extra_info
+            with the icon link.
+        """
+        node_type = self.asset.type()
+        node_def = node_type.definition()
+        sections = node_def.sections()
+        section = sections.get(self.main_icon_section)
+        if not section:
+            node_def.addSection(self.main_icon_section, self.main_icon_data)
+        else:
+            section.setContents(self.main_icon_data)
+
+        self.extra_infos += "#icon: opdef:" + node_type.nameWithCategory()
+        self.extra_infos += "?" + self.main_icon_section + '\n'
+
+    def output(self):
+
+        self.save_icon()
+        return "\n\n//MAINTITLE\n\n\n" + '= ' + self.text.text() + \
+                ' =\n' + self.extra_infos
 
 class Title(QtGui.QWidget, WidgetInterface):
-
-    def __init__(self, size=1, text="Title", idx=0, parent=None):
+    """ Simple line text input for title help widget.
+    """
+    def __init__(self, title_type=None, text="Title", idx=0,
+                 parent=None):
         super(Title, self).__init__(parent=parent)
 
         self.top_w = parent
         self.idx = idx
-        self.size = size
+        self.title_type = title_type
 
         layout = QtGui.QHBoxLayout()
 
@@ -517,30 +896,16 @@ class Title(QtGui.QWidget, WidgetInterface):
         self.text = QtGui.QLineEdit()
         self.text.setAcceptDrops(False)
         self.extra_infos = ""
-        
-        font_size = 10
-        if size == 1:
-            font_size = 16
-            sel = hou.selectedNodes()
-            sel = sel[0]
-            text = sel.type().name().replace('_', ' ')
-            t = sel.type()
-            context = t.category().name().lower()
-            if context == "object":
-                context = "obj"
-            self.extra_infos += "#context: " + context + '\n'
 
-        elif size == 2:
-            font_size = 14
-
-        elif size == 3:
-            font_size = 12
+        text_color = "black"
+        if title_type == TitleType.ENTRY_MENU:
+            text_color = "rgba(0,0,105)"
 
         self.text.setText(text)
         self.setStyleSheet("""QLineEdit{background-color: transparent;
                                          border: 0px;
-                                         color: black;
-                                         font-size: """ + str(font_size) + """pt;
+                                         color: """ + text_color + """;
+                                         font-size: """ + str(title_type) + """pt;
                                          font-family: Arial;;
                                          font-weight: bold}
                               QLineEdit:hover{background-color: rgba(0,0,80,16)}""")
@@ -569,46 +934,52 @@ class Title(QtGui.QWidget, WidgetInterface):
         return WidgetInterface.dragMoveEvent(self, event)
 
     def output(self):
-
-        if self.size == 3:
-            return "\n@" + self.text.text().replace(' ', '') + ' ' + \
+        
+        if self.title_type == TitleType.ENTRY_MENU:
+            return "\n\n//TITLEENTIRYMENU\n\n\n@" + \
+                   self.text.text().replace(' ', '') + ' ' + \
                    self.text.text() + '\n'
-        if self.size == 1:
-            return '= ' + self.text.text() + \
-                   ' =\n' + self.extra_infos
 
-        return '=' * self.size + ' ' + self.text.text() + \
-               ' ' + '=' * self.size +'\n'
+        return '\n\n//TITLE\n\n\n== '+ self.text.text() + \
+               ' ' + ' ==' +'\n'
 
 class Bullet(QtGui.QWidget, WidgetInterface):
-
-    def __init__(self, size=1, text="item", idx=0, parent=None):
+    """ Text block formatted with a small bullet icon
+    """
+    def __init__(self, text="item", idx=0, parent=None):
         super(Bullet, self).__init__(parent=parent)
 
         self.top_w = parent
         self.idx = idx
-        self.size = size
 
         layout = QtGui.QHBoxLayout()
         layout.setSpacing(5)
 
         self.setAcceptDrops(True)
 
+        ico_lay = QtGui.QVBoxLayout()
+        ico_lay.setContentsMargins(5,5,5,5)
         self.ico = QtGui.QLabel("")
         self.ico.setFixedSize(10,10)
         self.ico.setPixmap(get_icon("s_dot").pixmap(6,6))
-        layout.addWidget(self.ico)
+        self.ico.setAlignment(QtCore.Qt.AlignTop)
+        ico_lay.addWidget(self.ico)
+        ico_lay.addWidget(QtGui.QWidget())
 
-        self.text = QtGui.QLineEdit()
+        layout.addLayout(ico_lay)
+
+        self.text = QtGui.QTextEdit()
+        self.text.setMaximumHeight(20)
         self.text.setAcceptDrops(False)
+        self.text.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
         self.text.setText(text)
-        self.text.setStyleSheet("""QLineEdit{background-color: transparent;
+        self.text.setStyleSheet("""QTextEdit{background-color: transparent;
                                          border: 0px;
                                          color: black;
                                          font-size: 10pt;
                                          font-family: Time;}
-                              QLineEdit:hover{background-color: rgba(0,0,80,16)}""")
+                              QTextEdit:hover{background-color: rgba(0,0,80,16)}""")
         layout.addWidget(self.text)
         
         delete_btn = QtGui.QToolButton()
@@ -633,25 +1004,31 @@ class Bullet(QtGui.QWidget, WidgetInterface):
     def dragMoveEvent(self, event):
         return WidgetInterface.dragMoveEvent(self, event)
 
+    def keyReleaseEvent(self, event):
+
+        self.text.setFixedHeight(self.text.document().size().height())
+        super(Bullet, self).keyReleaseEvent(event)
+
     def output(self):
 
-        return '* ' + self.text.text() + '\n'
+        return '\n\n//BULLET\n\n\n* ' \
+               + self.text.toPlainText().replace('\n', ' ') + '\n'
 
 class _tiw(QtGui.QWidget, WidgetInterface):
-    """ Base class for Tips, Warning and Info line
+    """ Base class for Tips, Warning and Info widgets
     """
-    def __init__(self, idx=0, parent=None):
+    def __init__(self, text="tips", idx=0, parent=None):
         super(_tiw, self).__init__(parent=parent)
 
         self.top_w = parent
         self.idx = idx
+        self.default_text = text
 
         self.init_values()
         self.init_widget()
 
     def init_values(self):
-
-        self._text = "tips"
+    
         self.icon = "s_tips"
         self.icon_lbl = "Tip"
         self.color_n = "yellow"
@@ -687,7 +1064,7 @@ class _tiw(QtGui.QWidget, WidgetInterface):
         self.text = QtGui.QLineEdit()
         self.text.setContentsMargins(10,2,2,2)
         self.text.setAcceptDrops(False)
-        self.text.setText(self._text)
+        self.text.setText(self.default_text)
 
         self.setStyleSheet("""QLineEdit{background-color: transparent;
                                          border: 0px;
@@ -723,23 +1100,25 @@ class _tiw(QtGui.QWidget, WidgetInterface):
 
     def output(self):
 
-        return "\n" + self.type + ":\n    #display: " + \
+        return "\n\n//"+ self.type + "\n\n\n" + \
+               self.type + ":\n    #display: " + \
                self.color_n + "\n    " + \
                self.text.text() + "\n"
 
 class Tips(_tiw):
-
-    def __init__(self, idx = 0, parent = None):
-        super(Tips, self).__init__(idx, parent)
+    """ Tips formatted help text ( with bulb icon )
+    """
+    def __init__(self, text="Tips", idx=0, parent=None):
+        super(Tips, self).__init__(text=text, idx=idx, parent=parent)
 
 class Note(_tiw):   
-
-    def __init__(self, idx = 0, parent = None):
-        super(Note, self).__init__(idx, parent)
+    """ Note formatted help text ( with (!) icon )
+    """
+    def __init__(self, text="info", idx=0, parent=None):
+        super(Note, self).__init__(text=text, idx=idx, parent=parent)
 
     def init_values(self):
-
-        self._text = "info"
+        
         self.icon = "s_info"
         self.icon_lbl = "Info"
         self.color_n = "blue"
@@ -747,13 +1126,13 @@ class Note(_tiw):
         self.type = "NOTE"
 
 class Warning(_tiw):
-
-    def __init__(self, idx = 0, parent = None):
-        super(Warning, self).__init__(idx, parent)
+    """ Warning formatted help text ( with warning icon )
+    """
+    def __init__(self, text="warning", idx=0, parent=None):
+        super(Warning, self).__init__(text=text, idx=idx, parent=parent)
 
     def init_values(self):
-
-        self._text = "warning"
+        
         self.icon = "s_warning"
         self.icon_lbl = "Warning"
         self.color_n = "red"
@@ -761,66 +1140,81 @@ class Warning(_tiw):
         self.type = "WARNING"
 
 class Parameters(QtGui.QWidget, WidgetInterface):
+    """ A grid layer widget with section name. Created from given
+        selected node parameters label and help.
+        Folder are formatted as section title
 
-    def __init__(self, node=None, idx=0, parent=None):
+        -Folder Name-
+           parm label A : parm help A
+           parm label B : parm help B
+           ...
+
+        Only the parameters with help tool and visible are fetched.
+        The help value can by edited.
+    """
+    def __init__(self, node=None, idx=0, parms_dict=None, parent=None):
         super(Parameters, self).__init__(parent=parent)
 
         self.idx = idx
-        self.parms = node.parms()
         self.parm_blocks = []
         self.widgets = []
         
         self.setAcceptDrops(True)
         self.setAutoFillBackground(True)
 
-        # init parm dict
-        self.parms_dict = {}
-        tmp_names = []
-        self.parms_dict["_NO_FODER_"] = []
+        # init parm dict from the selected node or from a given parm dict
+        # when help card is read.
+        self.parms_dict = parms_dict
+        if not self.parms_dict:
 
-        for p in self.parms:
+            self.parms = node.parms()
+            tmp_names = []
+            self.parms_dict = {}
+            self.parms_dict["_NO_FOLDER_"] = []
 
-            t = p.parmTemplate()
+            for p in self.parms:
+
+                t = p.parmTemplate()
             
-            # skip folders and parm with no help set or invisible
-            if t.type() in [hou.parmTemplateType.FolderSet,
-                            hou.parmTemplateType.Folder]:
-                continue
+                # skip folders and parm with no help set or invisible
+                if t.type() in [hou.parmTemplateType.FolderSet,
+                                hou.parmTemplateType.Folder]:
+                    continue
 
-            help = t.help()
-            if not help:
-                continue
+                help = t.help()
+                if not help:
+                    continue
 
-            if t.isHidden():
-                continue
+                if t.isHidden():
+                    continue
             
-            # fetch name and label, remove last digit when parm is vector
-            # if name already in tmp_name: skip it ( used for vector )
-            t_name = t.name()
-            if t.numComponents() > 1:
-                t_name = t_name[:-1]
-            if t_name in tmp_names:
-                continue
-            tmp_names.append(t_name)
-            t_label = t.label()
+                # fetch name and label, remove last digit when parm is vector
+                # if name already in tmp_name: skip it ( used for vector )
+                t_name = t.name()
+                if t.numComponents() > 1:
+                    t_name = t_name[:-1]
+                if t_name in tmp_names:
+                    continue
+                tmp_names.append(t_name)
+                t_label = t.label()
 
-            # populate parms / folder dictionary
-            container = p.containingFolders()
-            if len(container) == 0:
-                self.parms_dict["_NO_FODER_"].append([t_label, help])
-            else:
-                container = container[-1]
-                if container not in self.parms_dict.keys():
-                    self.parms_dict[container] = [[t_label, help]]
+                # populate parms / folder dictionary
+                container = p.containingFolders()
+                if len(container) == 0:
+                    self.parms_dict["_NO_FOLDER_"].append([t_label, help])
                 else:
-                    self.parms_dict[container].append([t_label, help])
+                    container = container[-1]
+                    if container not in self.parms_dict.keys():
+                        self.parms_dict[container] = [[t_label, help]]
+                    else:
+                        self.parms_dict[container].append([t_label, help])
         
         layout = QtGui.QHBoxLayout()
         self.top_w = parent
 
-        params_layout = QtGui.QVBoxLayout()
-        params_layout.setContentsMargins(0,0,0,0)
-        params_layout.setSpacing(2)
+        self.parms_layout = QtGui.QVBoxLayout()
+        self.parms_layout.setContentsMargins(0,0,0,0)
+        self.parms_layout.setSpacing(2)
         lbl = QtGui.QLabel("Parameters")
         lbl.setContentsMargins(2,15,2,2)
         lbl.setStyleSheet("""QLabel{background-color: Transparent;
@@ -828,38 +1222,38 @@ class Parameters(QtGui.QWidget, WidgetInterface):
                                     color: black;
                                     font-size: 15pt;
                                     font-weight: bold}""")
-        params_layout.addWidget(lbl)
+        self.parms_layout.addWidget(lbl)
 
         # orphan params
-        for k in self.parms_dict["_NO_FODER_"]:
+        for k in self.parms_dict["_NO_FOLDER_"]:
 
-            p = _parmblock(k[0], k[1], self)
-            self.parm_blocks.append(p)
-            params_layout.addWidget(p)
+            p = ParmBlock(k[0], k[1], self)
+            self.parms_layout.addWidget(p)
             self.widgets.append(p)
 
-        for k in reversed(self.parms_dict.keys()):
+        for i, k in enumerate(reversed(self.parms_dict.keys())):
 
-            if k == "_NO_FODER_": continue
+            if k == "_NO_FOLDER_": continue
 
-            k_lbl = CLabel(k)
+            k_lbl = CLabel(k, parent=self)
+            self.parm_blocks.append(k_lbl)
             k_lbl.setStyleSheet("""QLabel{background-color: Transparent;
                                             font-family: Arial; 
                                             font-size: 10pt;
                                             font-weight: bold;
                                             color: black;}""")
             k_lbl.setContentsMargins(2,10,2,2)
-            params_layout.addWidget(k_lbl)
+            self.parms_layout.addWidget(k_lbl)
             self.widgets.append(k_lbl)
 
             for _pn, _ph in self.parms_dict[k]:
 
-                p = _parmblock(_pn, _ph, self)
+                p = ParmBlock(_pn, _ph, self)
                 self.parm_blocks.append(p)
-                params_layout.addWidget(p)
+                self.parms_layout.addWidget(p)
                 self.widgets.append(p)
 
-        layout.addItem(params_layout)
+        layout.addItem(self.parms_layout)
         
         delete_btn = QtGui.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
@@ -880,20 +1274,31 @@ class Parameters(QtGui.QWidget, WidgetInterface):
     def dragMoveEvent(self, event):
         return WidgetInterface.dragMoveEvent(self, event)
 
+    def remove_widget(self, pb):
+
+        if pb in self.widgets:
+
+            pb.setParent(None)
+            self.parms_layout.removeWidget(pb)
+            self.widgets.pop(self.widgets.index(pb))
+            pb.deleteLater()
+
     def output(self):
 
-        out = "@parameters\n"
+        out = "\n\n//PARAMETERS\n\n\n"
+        out += "@parameters\n"
         out += "\n".join([w.output() for w in self.widgets])
         return out
 
-class _parmblock(QtGui.QWidget):
-    """ Parameter label / help block, used in Parameters object
+class ParmBlock(QtGui.QWidget):
+    """ Parameter label / help block, used in Parameters object.
     """
     def __init__(self, parm_name, parm_help, parent=None):
-        super(_parmblock, self).__init__(parent=parent)
+        super(ParmBlock, self).__init__(parent=parent)
 
         self.parm_name = parm_name
         self.parm_help = parm_help
+        self.top_w = parent
 
         layout = QtGui.QHBoxLayout()
         layout.setSpacing(1)
@@ -904,21 +1309,18 @@ class _parmblock(QtGui.QWidget):
         # parm's name
         name_w = QtGui.QWidget(self)
         name_w.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Minimum)
-        name_w.setMinimumWidth(100)
-        name_w.setMaximumWidth(200)
         name_w.setAutoFillBackground(True)
         name_w.setObjectName("name_w")
-        name_w.setStyleSheet("""QWidget{background-color: #f3f3f3;
-                                               color: black}""")
+        name_w.setStyleSheet("""QWidget{background-color: #ececec;
+                                        color: black}""")
         name_layout = QtGui.QVBoxLayout()
-        name_layout.setContentsMargins(15,0,0,0)
+        name_layout.setContentsMargins(25,0,0,0)
         name_layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.name = QtGui.QLabel(self.parm_name)
-        self.name.setStyleSheet("""QLabel{font-weight: bold;} """)
-        self.name.setAlignment(QtCore.Qt.AlignRight)
-        self.name.setContentsMargins(5,5,5,5)
-        self.name.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Minimum)
-        self.name.setWordWrap(True)
+        self.name = TextBlock(text=self.parm_name, show_btn=False)
+        self.name
+        self.name.text.setStyleSheet("""QTextEdit{background-color: #ececec;
+                                                  color: black}""")
+        self.name.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Maximum)
         name_layout.addWidget(self.name)
         name_w.setLayout(name_layout)
 
@@ -932,26 +1334,37 @@ class _parmblock(QtGui.QWidget):
         help_layout = QtGui.QVBoxLayout()
         help_layout.setContentsMargins(0,0,0,0)
         help_layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.help = TextBlock(text=self.parm_help, show_btn=False)#QtGui.QLabel(self.parm_help)
+        self.help = TextBlock(text=self.parm_help, show_btn=False)
         self.help.text.setStyleSheet("""QTextEdit{background-color: #ececec;
-                                                  border: 0px;
                                                   color: black}""")
         self.help.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Maximum)
         help_layout.addWidget(self.help)
         help_w.setLayout(help_layout)
 
+        delete_btn = QtGui.QToolButton()
+        delete_btn.setStyleSheet("""QToolButton{background-color:
+                                    transparent;border: 0px}""")
+        delete_btn.setIcon(get_icon("close"))
+        delete_btn.clicked.connect(self.remove_me)
+
         layout.addWidget(name_w)
         layout.addWidget(help_w)
+        layout.addWidget(delete_btn)
         
         self.setLayout(layout)
 
-    def output(self):
+    def remove_me(self):
 
+        self.top_w.remove_widget(self)
+
+    def output(self):
+        
         return "\n" + self.parm_name + ':' + \
                "\n    " + self.help.text.toPlainText().replace('\n', '\n    ') + "\n"
 
 class Separator(QtGui.QWidget, WidgetInterface):
-
+    """ Simple horizontal separator line help widget
+    """
     def __init__(self, idx=0, parent=None):
         super(Separator, self).__init__(parent=parent)
 
@@ -998,11 +1411,12 @@ class Separator(QtGui.QWidget, WidgetInterface):
 
     def output(self):
 
-        return '\n~~~\n'
+        return '\n\n//SEPARATOR\n\n\n~~~\n'
 
 class TextBox(QtGui.QWidget, WidgetInterface):
-
-    def __init__(self, text="", idx=0,
+    """ Text block formatted in a rounded edges colored box.
+    """
+    def __init__(self, text="text", idx=0,
                  color_str="blue", parent=None):
         super(TextBox, self).__init__(parent=parent)
 
@@ -1016,11 +1430,15 @@ class TextBox(QtGui.QWidget, WidgetInterface):
         self.apply_color()
 
         layout = QtGui.QHBoxLayout()
-        self.text = QtGui.QLineEdit(text)
-        self.text.setAcceptDrops(False)
-        self.text.setContentsMargins(5,10,10,10)
-        self.text.setTextMargins(10,10,10,10)
-        layout.addWidget(self.text)
+        self.text_input = QtGui.QTextEdit()
+        self.text_input.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.text_input.setText(text)
+        mh = self.text_input.document().size().height() + 20
+        self.text_input.setFixedHeight(mh + 20)
+        self.text_input.setAcceptDrops(False)
+        self.text_input.setContentsMargins(5,10,10,10)
+        self.text_input.setViewportMargins(10,10,10,10)
+        layout.addWidget(self.text_input)
 
         change_color_btn = QtGui.QToolButton()
         change_color_btn.setStyleSheet("""QToolButton{background-color:
@@ -1073,15 +1491,25 @@ class TextBox(QtGui.QWidget, WidgetInterface):
     def dragMoveEvent(self, event):
         return WidgetInterface.dragMoveEvent(self, event)
 
+    def keyReleaseEvent(self, event):
+
+        self.text_input.setFixedHeight(self.text_input.document().size().height() + 20)
+        super(TextBox, self).keyReleaseEvent(event)
+
     def output(self):
 
-        return '\n:box:\n    #display: bordered ' + \
+        return '\n\n//TEXTBOX\n\n\n' + \
+               '\n:box:\n    #display: bordered ' + \
                self.color_str + '\n    ' + \
-               self.text.text()
+               self.text_input.toPlainText().replace('\n', ' ')
 
 class ImageFromDisk(QtGui.QWidget, WidgetInterface):
-
-    def __init__(self, img="", idx=0, parent=None):
+    """ Fetch a png image from disk and add it to the help card.
+        The file is embedded in the asset external file section with the
+        output() method is called. The link in the help card 
+        will point to this embedded file.
+    """
+    def __init__(self, img="", img_data=None, idx=0, parent=None):
         super(ImageFromDisk, self).__init__(parent=parent)
 
         self.top_w = parent
@@ -1090,9 +1518,12 @@ class ImageFromDisk(QtGui.QWidget, WidgetInterface):
         self.setAutoFillBackground(True)
         self.img_file = img
         self.img_name = os.path.split(img)[1]
-        self.section_name = "HELPCARD_" + self.img_name
-        with open(img, 'rb') as f: data = f.read()
-        self.img_data = data
+        self.section_name = "HELP_CARD_IMG_" + self.img_name
+
+        self.img_data = img_data
+        if not self.img_data:
+            with open(img, 'rb') as f: data = f.read()
+            self.img_data = data
 
         layout = QtGui.QHBoxLayout()
 
@@ -1147,4 +1578,5 @@ class ImageFromDisk(QtGui.QWidget, WidgetInterface):
 
         tag = node.type().nameWithCategory() + "?"
 
-        return "\n[Image:opdef:/"+ tag + self.section_name + "]\n"
+        return "\n\n//IMG\n\n\n" + \
+               "\n[Image:opdef:/"+ tag + self.section_name + "]\n"
