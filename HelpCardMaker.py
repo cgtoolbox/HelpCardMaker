@@ -90,6 +90,7 @@ class WidgetInterface(object):
 
     def dropEvent(self, event):
         
+        if not self.top_w: return
         data = event.mimeData().text()
 
         # insert a widget
