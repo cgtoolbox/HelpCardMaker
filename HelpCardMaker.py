@@ -16,7 +16,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details. http://www.gnu.org/licenses/
 
-VERSION = "0.9.0"
+VERSION = "0.9.4"
 
 import hou
 import os
@@ -84,8 +84,15 @@ class WidgetInterface(object):
     def dropEvent(self, event):
         
         data = event.mimeData().text()
+
+        # insert a widget
         if data.startswith("%HCM_W%"):
             self.top_w.insert_widget(data.split('_')[-1], self.idx + 1)
+
+        # widget has been moved
+        elif data.startswith("%W%"):
+            idx_from = int(data.split(';')[-1])
+            self.top_w.move_widget(idx_from, self.idx)
 
         else:
             self.text.setPlainText(self.text.toPlainText() + data)
@@ -93,6 +100,32 @@ class WidgetInterface(object):
     def remove_me(self):
         
         self.top_w.remove_widget(self)
+
+class WidgetHandle(QtGui.QFrame):
+
+    def __init__(self, idx=0, parent=None):
+        super(WidgetHandle, self).__init__(parent=parent)
+
+        self.widget = parent
+        self.setObjectName("handle")
+        self.setStyleSheet("""QFrame#handle{background-color: #eaeaea}""")
+        self.setFixedWidth(10)
+
+    def mousePressEvent(self, event):
+
+        self.widget.update()
+        self.widget.repaint()
+        pix = QtGui.QPixmap()
+        pix.grabWidget(self.widget)
+
+        mimeData = QtCore.QMimeData()
+        mimeData.setText("%W%;" + str(self.widget.idx))
+        drag = QtGui.QDrag(self)
+        
+        drag.setPixmap(pix)
+        drag.setMimeData(mimeData)
+        drag.setHotSpot(event.pos() - self.rect().topLeft())
+        drag.start(QtCore.Qt.MoveAction)
 
 class ToolIcon(QtGui.QLabel):
     """ Custom flat icon which stats the drag system, used in 
@@ -340,7 +373,7 @@ class MainPanel(QtGui.QFrame):
             for w in self.ui_widgets:
                 w.remove_me()
 
-    def remove_widget(self, w):
+    def remove_widget(self, w, delete=True):
         """ Remove a given widget from scroll area
         """
         w.setParent(None)
@@ -350,7 +383,27 @@ class MainPanel(QtGui.QFrame):
             id = self.ui_widgets.index(w)
             self.ui_widgets.pop(id)
 
-        w.deleteLater()
+        if delete:
+            w.deleteLater()
+
+        for i, w in enumerate(self.ui_widgets):
+            w.idx = i
+
+    def move_widget(self, idx_from, idx_to):
+        """ Move a widget using ids from / to.
+            Used when widgets are reordered using drag and drops.
+        """
+        
+
+        it = self.scroll_lay.itemAt(idx_from)
+        if not it: return
+        w = it.widget()
+        if not w: return
+
+        self.remove_widget(w, delete=False)
+        
+        self.scroll_lay.insertWidget(idx_to, w)
+        self.ui_widgets.insert(idx_to, w)
 
         for i, w in enumerate(self.ui_widgets):
             w.idx = i
@@ -706,11 +759,14 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
 
         self.top_w = parent
         self.idx = idx
-
-        layout = QtGui.QHBoxLayout()
-
         self.setAcceptDrops(True)
 
+        layout = QtGui.QHBoxLayout()
+        
+        if show_btn:
+            handle = WidgetHandle(parent=self)
+            layout.addWidget(handle)
+        
         self.text = QtGui.QTextEdit()
         self.text.setAcceptDrops(False)
         self.text.setPlainText(text)
@@ -764,11 +820,11 @@ class MainTitle(QtGui.QWidget, WidgetInterface):
         self.top_w = parent
         self.idx = idx
 
-        layout = QtGui.QHBoxLayout()
-        text_layout = QtGui.QVBoxLayout()
-
         self.setAcceptDrops(True)
 
+        layout = QtGui.QHBoxLayout()
+        text_layout = QtGui.QVBoxLayout()
+        
         self.text = QtGui.QLineEdit()
         self.text.setAcceptDrops(False)
 
@@ -888,10 +944,12 @@ class Title(QtGui.QWidget, WidgetInterface):
         self.top_w = parent
         self.idx = idx
         self.title_type = title_type
+        self.setAcceptDrops(True)
 
         layout = QtGui.QHBoxLayout()
 
-        self.setAcceptDrops(True)
+        handle = WidgetHandle(parent=self)
+        layout.addWidget(handle)
 
         self.text = QtGui.QLineEdit()
         self.text.setAcceptDrops(False)
@@ -952,10 +1010,13 @@ class Bullet(QtGui.QWidget, WidgetInterface):
         self.top_w = parent
         self.idx = idx
 
+        self.setAcceptDrops(True)
+
         layout = QtGui.QHBoxLayout()
         layout.setSpacing(5)
 
-        self.setAcceptDrops(True)
+        handle = WidgetHandle(parent=self)
+        layout.addWidget(handle)
 
         ico_lay = QtGui.QVBoxLayout()
         ico_lay.setContentsMargins(5,5,5,5)
@@ -1040,6 +1101,10 @@ class _tiw(QtGui.QWidget, WidgetInterface):
         self.setAcceptDrops(True)
 
         layout = QtGui.QHBoxLayout()
+
+        handle = WidgetHandle(parent=self)
+        layout.addWidget(handle)
+
         tips_layout = QtGui.QVBoxLayout()
 
         tip_lbl_lay = QtGui.QHBoxLayout()
@@ -1210,13 +1275,17 @@ class Parameters(QtGui.QWidget, WidgetInterface):
                         self.parms_dict[container].append([t_label, help])
         
         layout = QtGui.QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+
+        handle = WidgetHandle(parent=self)
+        layout.addWidget(handle)
+
         self.top_w = parent
 
         self.parms_layout = QtGui.QVBoxLayout()
         self.parms_layout.setContentsMargins(0,0,0,0)
         self.parms_layout.setSpacing(2)
         lbl = QtGui.QLabel("Parameters")
-        lbl.setContentsMargins(2,15,2,2)
         lbl.setStyleSheet("""QLabel{background-color: Transparent;
                                     font-family: Arial;
                                     color: black;
@@ -1242,7 +1311,6 @@ class Parameters(QtGui.QWidget, WidgetInterface):
                                             font-size: 10pt;
                                             font-weight: bold;
                                             color: black;}""")
-            k_lbl.setContentsMargins(2,10,2,2)
             self.parms_layout.addWidget(k_lbl)
             self.widgets.append(k_lbl)
 
@@ -1261,8 +1329,7 @@ class Parameters(QtGui.QWidget, WidgetInterface):
         delete_btn.setIcon(get_icon("close"))
         delete_btn.clicked.connect(self.remove_me)
         layout.addWidget(delete_btn)
-
-        self.setContentsMargins(5,5,5,5)
+        
         self.setLayout(layout)
 
     def dropEvent(self, event):
@@ -1370,11 +1437,13 @@ class Separator(QtGui.QWidget, WidgetInterface):
 
         self.top_w = parent
         self.idx = idx
-        
-        layout = QtGui.QHBoxLayout()
-
         self.setObjectName("base")
         self.setAcceptDrops(True)
+
+        layout = QtGui.QHBoxLayout()
+
+        handle = WidgetHandle(parent=self)
+        layout.addWidget(handle)
 
         sep = QtGui.QFrame()
         sep.setObjectName("sep")
@@ -1427,9 +1496,14 @@ class TextBox(QtGui.QWidget, WidgetInterface):
         self.color = getattr(BoxColors, color_str.upper())
         self.color_str = color_str
 
-        self.apply_color()
-
         layout = QtGui.QHBoxLayout()
+
+        handle = WidgetHandle(parent=self)
+        handle.setObjectName("handle")
+        handle.setStyleSheet("""QFrame#handle{background-color: #eaeaea;
+                                              border: 0px}""")
+        layout.addWidget(handle)
+
         self.text_input = QtGui.QTextEdit()
         self.text_input.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.text_input.setText(text)
@@ -1459,6 +1533,8 @@ class TextBox(QtGui.QWidget, WidgetInterface):
                            QtGui.QSizePolicy.Maximum)
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
+
+        self.apply_color()
 
     def apply_color(self):
 
@@ -1526,6 +1602,9 @@ class ImageFromDisk(QtGui.QWidget, WidgetInterface):
             self.img_data = data
 
         layout = QtGui.QHBoxLayout()
+
+        handle = WidgetHandle(parent=self)
+        layout.addWidget(handle)
 
         pixmap = QtGui.QPixmap()
         pixmap.loadFromData(self.img_data)
