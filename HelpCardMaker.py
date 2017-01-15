@@ -70,6 +70,13 @@ CONTEXT_REMAP = {
                  "chop": "CHOP node",
                 }
 
+MULTIPARM_TYPES = [hou.folderType.MultiparmBlock,
+                   hou.folderType.ScrollingMultiparmBlock,
+                   hou.folderType.TabbedMultiparmBlock]
+
+FOLDER_TYPES = [hou.parmTemplateType.FolderSet,
+                hou.parmTemplateType.Folder]
+
 class WidgetInterface(object):
     """ Help widgets interface for drag and drop system implementation
     """
@@ -1233,14 +1240,51 @@ class Parameters(QtGui.QWidget, WidgetInterface):
         if not self.parms_dict:
 
             self.parms = node.parms()
+            self.parm_tuples = node.parmTuples()
             tmp_names = []
-            self.parms_dict = {}
+            self.parms_dict = OrderedDict()
             self.parms_dict["_NO_FOLDER_"] = []
+            
+            # create folders
+            for p in [_p for _p in self.parm_tuples if \
+                      _p.parmTemplate().type() in FOLDER_TYPES]:
 
+                t = p.parmTemplate()
+                if t.folderType() in MULTIPARM_TYPES:
+                    continue
+
+                lbl = t.label()
+                if lbl:
+                    self.parms_dict[lbl] = []
+
+            # parse parameters and multiparms
             for p in self.parms:
 
                 t = p.parmTemplate()
+
+                # skip multiparm instances, the first parameter will be fetched from
+                # multiparm parameter itself
+                if p.isMultiParmInstance():
+                    continue
             
+                # fetch multiparms
+                if t.type() == hou.parmTemplateType.Folder and \
+                   t.folderType() in MULTIPARM_TYPES:
+                    
+                    instances = p.multiParmInstances()
+                    if not instances: continue
+                    
+                    nInstances = p.eval()  # number of block instances
+                    nParms = len(instances) / nInstances
+
+                    mParms = []
+                    for i in range(nParms):
+                        _p = instances[i]
+                        _t = _p.parmTemplate()
+                        mParms.append([_t.label(), _t.help()])
+
+                    self.parms_dict[t.label() + " (multiparm)"] = mParms
+
                 # skip folders and parm with no help set or invisible
                 if t.type() in [hou.parmTemplateType.FolderSet,
                                 hou.parmTemplateType.Folder]:
@@ -1300,7 +1344,7 @@ class Parameters(QtGui.QWidget, WidgetInterface):
             self.parms_layout.addWidget(p)
             self.widgets.append(p)
 
-        for i, k in enumerate(reversed(self.parms_dict.keys())):
+        for i, k in enumerate(self.parms_dict.keys()):
 
             if k == "_NO_FOLDER_": continue
 
