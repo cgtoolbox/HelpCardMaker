@@ -116,15 +116,14 @@ class WidgetHandle(QtGui.QFrame):
 
         self.widget = parent
         self.setObjectName("handle")
-        self.setStyleSheet("""QFrame#handle{background-color: #eaeaea}""")
+        self.setStyleSheet("""QFrame#handle{background-color: #eaeaea;}
+                              QFrame#handle:hover{background-color: #d5dae5;}""")
         self.setFixedWidth(10)
 
     def mousePressEvent(self, event):
 
-        self.widget.update()
-        self.widget.repaint()
-        pix = QtGui.QPixmap()
-        pix.grabWidget(self.widget)
+        pix = QtGui.QPixmap(self.widget.size())
+        self.widget.render(pix)
 
         mimeData = QtCore.QMimeData()
         mimeData.setText("%W%;" + str(self.widget.idx))
