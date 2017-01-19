@@ -777,9 +777,19 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
         self.text = QtGui.QTextEdit()
         self.text.setAcceptDrops(False)
         self.text.setPlainText(text)
-        self.text.setMaximumHeight(20 * len(text.split('\n')))
+
+        doc = QtGui.QTextDocument()
+        doc.setPlainText(text)
+        self.text.setDocument(doc)
+        self.text.updateGeometry()
+        h = self.text.document().size().height()
+        self.text.setMaximumHeight(h)
+        
         self.text.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.text.setWordWrapMode(QtGui.QTextOption.WordWrap)
+        self.text.setLineWrapMode(QtGui.QTextEdit.LineWrapMode.WidgetWidth)
+        self.text.setSizePolicy(QtGui.QSizePolicy.Minimum,
+                                QtGui.QSizePolicy.MinimumExpanding)
         self.setStyleSheet("""QTextEdit{background-color: transparent;
                                          border: 0px;
                                          color: black}
@@ -800,6 +810,11 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
+    def update_height(self):
+
+        h = self.text.document().size().height()
+        self.text.setFixedHeight(h)
+
     def dropEvent(self, event):
         return WidgetInterface.dropEvent(self, event)
 
@@ -811,8 +826,13 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
 
     def keyReleaseEvent(self, event):
 
-        self.text.setFixedHeight(self.text.document().size().height())
+        self.update_height()
         super(TextBlock, self).keyReleaseEvent(event)
+
+    def resizeEvent(self, event):
+
+        self.update_height()
+        super(TextBlock, self).resizeEvent(event)
 
     def output(self):
 
@@ -1032,22 +1052,10 @@ class Bullet(QtGui.QWidget, WidgetInterface):
         self.ico.setPixmap(get_icon("s_dot").pixmap(6,6))
         self.ico.setAlignment(QtCore.Qt.AlignTop)
         ico_lay.addWidget(self.ico)
-        ico_lay.addWidget(QtGui.QWidget())
 
         layout.addLayout(ico_lay)
 
-        self.text = QtGui.QTextEdit()
-        self.text.setMaximumHeight(20)
-        self.text.setAcceptDrops(False)
-        self.text.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-
-        self.text.setText(text)
-        self.text.setStyleSheet("""QTextEdit{background-color: transparent;
-                                         border: 0px;
-                                         color: black;
-                                         font-size: 10pt;
-                                         font-family: Time;}
-                              QTextEdit:hover{background-color: rgba(0,0,80,16)}""")
+        self.text = TextBlock(text=text, show_btn=False)
         layout.addWidget(self.text)
         
         delete_btn = QtGui.QToolButton()
@@ -1058,8 +1066,6 @@ class Bullet(QtGui.QWidget, WidgetInterface):
         layout.addWidget(delete_btn)
 
         layout.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Maximum)
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
@@ -1071,11 +1077,6 @@ class Bullet(QtGui.QWidget, WidgetInterface):
 
     def dragMoveEvent(self, event):
         return WidgetInterface.dragMoveEvent(self, event)
-
-    def keyReleaseEvent(self, event):
-
-        self.text.setFixedHeight(self.text.document().size().height())
-        super(Bullet, self).keyReleaseEvent(event)
 
     def output(self):
 
@@ -1133,17 +1134,7 @@ class _tiw(QtGui.QWidget, WidgetInterface):
                                         font-size: 10pt} """)
         tips_layout.addItem(tip_lbl_lay)
 
-        self.text = QtGui.QLineEdit()
-        self.text.setContentsMargins(10,2,2,2)
-        self.text.setAcceptDrops(False)
-        self.text.setText(self.default_text)
-
-        self.setStyleSheet("""QLineEdit{background-color: transparent;
-                                         border: 0px;
-                                         color: black;
-                                         font-size: 10pt;
-                                         font-family: Time;}
-                              QLineEdit:hover{background-color: rgba(0,0,80,16)}""")
+        self.text = TextBlock(text=self.default_text, show_btn=False)
         tips_layout.addWidget(self.text)
 
         layout.addItem(tips_layout)
@@ -1175,7 +1166,7 @@ class _tiw(QtGui.QWidget, WidgetInterface):
         return "\n\n//"+ self.type + "\n\n\n" + \
                self.type + ":\n    #display: " + \
                self.color_n + "\n    " + \
-               self.text.text() + "\n"
+               self.text.text.toPlainText() + "\n"
 
 class Tips(_tiw):
     """ Tips formatted help text ( with bulb icon )
@@ -1418,39 +1409,19 @@ class ParmBlock(QtGui.QWidget):
         self.setAutoFillBackground(True)
 
         # parm's name
-        name_w = QtGui.QWidget(self)
-        name_w.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Minimum)
-        name_w.setAutoFillBackground(True)
-        name_w.setObjectName("name_w")
-        name_w.setStyleSheet("""QWidget{background-color: #ececec;
-                                        color: black}""")
-        name_layout = QtGui.QVBoxLayout()
-        name_layout.setContentsMargins(25,0,0,0)
-        name_layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.name = TextBlock(text=self.parm_name, show_btn=False)
-        self.name
-        self.name.text.setStyleSheet("""QTextEdit{background-color: #ececec;
-                                                  color: black}""")
-        self.name.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Maximum)
-        name_layout.addWidget(self.name)
-        name_w.setLayout(name_layout)
+        self.name = QtGui.QLabel(self.parm_name)
+        self.name.setStyleSheet("""QLabel{background-color: #ececec;
+                                          color: black;
+                                          margin:2px}""")
+        self.name.setSizePolicy(QtGui.QSizePolicy.Expanding,
+                                QtGui.QSizePolicy.Minimum)
 
         # parm's help
-        help_w = QtGui.QWidget(self)
-        help_w.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Maximum)
-        help_w.setAutoFillBackground(True)
-        help_w.setObjectName("name_w")
-        help_w.setStyleSheet("""QWidget{background-color: #ececec;
-                                        color: black}""")
-        help_layout = QtGui.QVBoxLayout()
-        help_layout.setContentsMargins(0,0,0,0)
-        help_layout.setAlignment(QtCore.Qt.AlignLeft)
         self.help = TextBlock(text=self.parm_help, show_btn=False)
         self.help.text.setStyleSheet("""QTextEdit{background-color: #ececec;
                                                   color: black}""")
-        self.help.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Maximum)
-        help_layout.addWidget(self.help)
-        help_w.setLayout(help_layout)
+        self.help.setSizePolicy(QtGui.QSizePolicy.Expanding,
+                                QtGui.QSizePolicy.Maximum)
 
         delete_btn = QtGui.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
@@ -1458,8 +1429,8 @@ class ParmBlock(QtGui.QWidget):
         delete_btn.setIcon(get_icon("close"))
         delete_btn.clicked.connect(self.remove_me)
 
-        layout.addWidget(name_w)
-        layout.addWidget(help_w)
+        layout.addWidget(self.name)
+        layout.addWidget(self.help)
         layout.addWidget(delete_btn)
         
         self.setLayout(layout)
