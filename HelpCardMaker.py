@@ -121,9 +121,37 @@ class WidgetHandle(QtGui.QFrame):
         self.setFixedWidth(10)
 
     def mousePressEvent(self, event):
+        """ Init the drag and drop system for reordering widgets.
+            Limite the size of the thumbnail's pixmap to 200pix height
+            Add a small gradient as alpha mask.
+        """
+        widget_size = self.widget.size()
 
-        pix = QtGui.QPixmap(self.widget.size())
-        self.widget.render(pix)
+        w_h = widget_size.height()
+        pix_h = 100
+        if w_h < 200: pix_h = w_h
+
+        pix_w = widget_size.width()
+
+        mask_pix = QtGui.QPixmap(QtCore.QSize(pix_w, pix_h))
+ 
+        painter	= QtGui.QPainter(mask_pix)
+        
+        gradient = QtGui.QLinearGradient(QtCore.QPointF(mask_pix.rect().topLeft()),
+				                   QtCore.QPointF(mask_pix.rect().bottomLeft()))
+        gradient.setColorAt(0, QtGui.QColor(200, 200, 200))
+        gradient.setColorAt(0.5, QtGui.QColor(200, 200, 200))
+        gradient.setColorAt(1, QtCore.Qt.black)
+        brush = QtGui.QBrush(gradient)
+        
+        painter.fillRect(QtCore.QRectF(0, 0, pix_w, pix_h), brush) 
+        painter.end()
+        
+        w_pix = QtGui.QPixmap(widget_size)
+        self.widget.render(w_pix)
+
+        pix = w_pix.copy(0, 0, pix_w, pix_h)
+        pix.setAlphaChannel(mask_pix)
 
         mimeData = QtCore.QMimeData()
         mimeData.setText("%W%;" + str(self.widget.idx))
