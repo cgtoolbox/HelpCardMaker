@@ -1,5 +1,5 @@
 # Houdini Help card maker
-# Compatibility => Houdini 14, 15, 15.5
+# Compatibility => Houdini 16
 
 # Author:  Guillaume Jobst
 # Contact: contact@guillaume-j.com
@@ -22,8 +22,9 @@ import hou
 import os
 from collections import OrderedDict
 
-from PySide import QtGui
-from PySide import QtCore
+from PySide2 import QtGui
+from PySide2 import QtCore
+from PySide2 import QtWidgets
 
 ICONS = os.path.dirname(__file__) + "\\icons\\"
 def get_icon(name):
@@ -109,7 +110,7 @@ class WidgetInterface(object):
         
         self.top_w.remove_widget(self)
 
-class WidgetHandle(QtGui.QFrame):
+class WidgetHandle(QtWidgets.QFrame):
 
     def __init__(self, idx=0, parent=None):
         super(WidgetHandle, self).__init__(parent=parent)
@@ -135,14 +136,14 @@ class WidgetHandle(QtGui.QFrame):
 
         mask_pix = QtGui.QPixmap(QtCore.QSize(pix_w, pix_h))
  
-        painter	= QtGui.QPainter(mask_pix)
+        painter	= QtWidgets.QPainter(mask_pix)
         
-        gradient = QtGui.QLinearGradient(QtCore.QPointF(mask_pix.rect().topLeft()),
+        gradient = QtWidgets.QLinearGradient(QtCore.QPointF(mask_pix.rect().topLeft()),
 				                   QtCore.QPointF(mask_pix.rect().bottomLeft()))
         gradient.setColorAt(0, QtGui.QColor(200, 200, 200))
         gradient.setColorAt(0.5, QtGui.QColor(200, 200, 200))
         gradient.setColorAt(1, QtCore.Qt.black)
-        brush = QtGui.QBrush(gradient)
+        brush = QtWidgets.QBrush(gradient)
         
         painter.fillRect(QtCore.QRectF(0, 0, pix_w, pix_h), brush) 
         painter.end()
@@ -162,7 +163,7 @@ class WidgetHandle(QtGui.QFrame):
         drag.setHotSpot(event.pos() - self.rect().topLeft())
         drag.start(QtCore.Qt.MoveAction)
 
-class ToolIcon(QtGui.QLabel):
+class ToolIcon(QtWidgets.QLabel):
     """ Custom flat icon which stats the drag system, used in 
         toolbar widget only.
     """
@@ -185,7 +186,7 @@ class ToolIcon(QtGui.QLabel):
         drag.setHotSpot(event.pos() - self.rect().topLeft())
         drag.start(QtCore.Qt.MoveAction)
 
-class CLabel(QtGui.QWidget):
+class CLabel(QtWidgets.QWidget):
     """ Utilitiy label with output() method to be compatible with
         other help widgets.
     """
@@ -194,12 +195,12 @@ class CLabel(QtGui.QWidget):
 
         self.top_w = parent
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.lbl = QtGui.QLabel(text)
+        self.lbl = QtWidgets.QLabel(text)
         layout.addWidget(self.lbl)
 
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent;border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -216,7 +217,7 @@ class CLabel(QtGui.QWidget):
 
         return self.lbl.text() + '\n'
 
-class ColorChooser(QtGui.QDialog):
+class ColorChooser(QtWidgets.QDialog):
     """ Custom color picker with button. Parse the given color_class
         to fetch which colors are available.
     """
@@ -226,7 +227,7 @@ class ColorChooser(QtGui.QDialog):
         self.setWindowIcon(get_icon("color"))
         self.setWindowTitle("Pick a Color")
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.setSpacing(5)
         self.color = None
 
@@ -237,14 +238,14 @@ class ColorChooser(QtGui.QDialog):
 
             _c = getattr(color_class, c)
             color_str = ','.join([str(v) for v in [_c.red(), _c.green(), _c.blue()]])
-            btn = QtGui.QPushButton(c.capitalize())
+            btn = QtWidgets.QPushButton(c.capitalize())
             btn.setStyleSheet("""QPushButton{background-color: rgb(""" + color_str + """);
                                              color: black}""")
             btn.clicked.connect(lambda c=c: self.set_color(c))
             layout.addWidget(btn)
 
-        layout.addWidget(QtGui.QLabel(""))
-        cancel_btn = QtGui.QPushButton("Cancel")
+        layout.addWidget(QtWidgets.QLabel(""))
+        cancel_btn = QtWidgets.QPushButton("Cancel")
         cancel_btn.clicked.connect(self.close)
         layout.addWidget(cancel_btn)
 
@@ -255,31 +256,33 @@ class ColorChooser(QtGui.QDialog):
         self.color = color
         self.close()
 
-class wSep(QtGui.QFrame):
+class wSep(QtWidgets.QFrame):
     """ smal vertival separator widget for toolbar
     """
     def __init__(self):
-        QtGui.QFrame.__init__(self)
-        self.setFrameStyle(QtGui.QFrame.VLine)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Expanding)
+        QtWidgets.QFrame.__init__(self)
+        self.setFrameStyle(QtWidgets.QFrame.VLine)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                           QtWidgets.QSizePolicy.Expanding)
         self.setFixedHeight(34)
 
 # MAIN INTERFACE
-class MainPanel(QtGui.QFrame):
+class MainPanel(QtWidgets.QFrame):
     """ Main UI for pypanel creation
     """
     def __init__(self, parent=None):
         super(MainPanel, self).__init__(parent=parent)
 
-        self.main_layout = QtGui.QVBoxLayout()
+        self.setProperty("houdiniStyle", True)
+
+        self.main_layout = QtWidgets.QVBoxLayout()
         self.main_layout.setSpacing(5)
 
         # toolbar
-        self.toolbar = QtGui.QHBoxLayout()
+        self.toolbar = QtWidgets.QHBoxLayout()
         self.toolbar.setAlignment(QtCore.Qt.AlignLeft)
 
-        self.read_help_btn = QtGui.QToolButton()
+        self.read_help_btn = QtWidgets.QToolButton()
         self.read_help_btn.setStyleSheet("""QToolButton{border: None;
                                              background-color: None}""")
         self.read_help_btn.setIcon(get_icon("open_card"))
@@ -290,7 +293,7 @@ class MainPanel(QtGui.QFrame):
         self.read_help_btn.setToolTip("Read existing help card from selected asset")
         self.toolbar.addWidget(self.read_help_btn)
 
-        self.apply_help_btn = QtGui.QToolButton()
+        self.apply_help_btn = QtWidgets.QToolButton()
         self.apply_help_btn.setStyleSheet("""QToolButton{border: None;
                                              background-color: None}""")
         self.apply_help_btn.setIcon(get_icon("apply"))
@@ -301,7 +304,7 @@ class MainPanel(QtGui.QFrame):
         self.apply_help_btn.setToolTip("Set help card to selected digital asset")
         self.toolbar.addWidget(self.apply_help_btn)
 
-        self.clear_btn = QtGui.QToolButton()
+        self.clear_btn = QtWidgets.QToolButton()
         self.clear_btn.setStyleSheet("""QToolButton{border: None;
                                            background-color: None}""")
         self.clear_btn.setIcon(get_icon("clean"))
@@ -364,7 +367,7 @@ class MainPanel(QtGui.QFrame):
 
         self.toolbar.addWidget(wSep())
 
-        self.help_btn = QtGui.QToolButton()
+        self.help_btn = QtWidgets.QToolButton()
         self.help_btn.setStyleSheet("""QToolButton{border: None;
                                            background-color: None}""")
         self.help_btn.setIcon(get_icon("help"))
@@ -381,21 +384,30 @@ class MainPanel(QtGui.QFrame):
         self.ui_widgets = []
         self.scroll_w = ScrollWidget(parent=self)
         self.scroll_w.setAutoFillBackground(True)
-        self.scroll_lay = QtGui.QVBoxLayout()
+        self.scroll_lay = QtWidgets.QVBoxLayout()
         self.scroll_lay.setContentsMargins(5,5,5,5)
         self.scroll_lay.setSpacing(5)
         self.scroll_lay.setAlignment(QtCore.Qt.AlignTop)
         self.scroll_w.setLayout(self.scroll_lay)
-        self.scroll_area = QtGui.QScrollArea()
+        self.scroll_area = QtWidgets.QScrollArea()
         self.scroll_area.setObjectName("scroll")
         self.scroll_area.setStyleSheet("""QScrollArea{background-color: white;}""")
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.scroll_w)
 
+        # on this page menu
+        self.on_this_page = None
+        self.n_titles = 0
+
         self.main_layout.addWidget(self.scroll_area)
 
         self.main_layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(self.main_layout)
+
+    def hide_on_this_page(self):
+
+        if self.on_this_page:
+            self.on_this_page.setVisible(False)
 
     def clean_widgets(self, show_popup=True):
         """ Remove all widgets from the scroll area.
@@ -471,7 +483,7 @@ class MainPanel(QtGui.QFrame):
 
         elif w_type == "image":
 
-            img = QtGui.QFileDialog.getOpenFileName(filter="Png (*.png)")
+            img = QtWidgets.QFileDialog.getOpenFileName(filter="Png (*.png)")
             img = img[0]
             if not img: return
 
@@ -504,6 +516,18 @@ class MainPanel(QtGui.QFrame):
                 title_type = TitleType.TITLE
 
             w = Title(title_type=title_type, parent=self)
+
+            # TODO: update on this page menu if any
+            """if self.on_this_page:
+                self.on_this_page.append_entry(idx, "Title", w)
+                if not self.on_this_page.isVisible():
+                    self.on_this_page.setVisible(True)
+            else:
+                self.on_this_page = OnThisPage(parent=self)
+                self.on_this_page.append_entry(1, "Title", w)
+                self.scroll_lay.insertWidget(1, self.on_this_page)"""
+
+            self.n_titles += 1
 
         elif w_type == "params":
             sel = hou.selectedNodes()
@@ -751,14 +775,14 @@ class MainPanel(QtGui.QFrame):
         message += "Created by Guillaume Jobst\n\n"
         message += "More infos:\ncontact@guillaume-j.com\nwww.guillaume-j.com"
 
-        w = QtGui.QMessageBox()
+        w = QtWidgets.QMessageBox()
         w.setStyleSheet(hou.ui.qtStyleSheet())
         w.setWindowIcon(get_icon("help"))
         w.setWindowTitle("Help")
         w.setText(message)
         w.exec_()
 
-class ScrollWidget(QtGui.QWidget):
+class ScrollWidget(QtWidgets.QWidget):
     """ Custom widget used in scroll area which supports drag an drop
         system for helkp widgets creation
     """
@@ -784,8 +808,65 @@ class ScrollWidget(QtGui.QWidget):
         if data.startswith("%HCM_W%"):
             self.top_w.insert_widget(data.split('_')[-1], -1)
 
+class OnThisPageEntry(QtWidgets.QLabel):
+
+    def __init__(self, target_widget=None, text="None", parent=None):
+        super(OnThisPageEntry, self).__init__(parent=parent)
+
+        self.top_w = parent
+        self.target_widget = target_widget
+
+        self.setText(text)
+
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                               QtWidgets.QSizePolicy.Minimum)
+        self.setStyleSheet("""QLabel{color: #1782ba;}
+                              QLabel:hover{color: #349ed5;}""")
+        
+    def mousePressEvent(self, event):
+
+        self.top_w.top_w.scroll_area.ensureWidgetVisible(self.target_widget)
+
+    def update_text(self, text):
+
+        self.lbl.setText(text)
+
+class OnThisPage(QtWidgets.QWidget):
+
+    def __init__(self, parent=None):
+        super(OnThisPage, self).__init__(parent=parent)
+
+        self.top_w = parent
+
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.main_lbl = QtWidgets.QLabel("On This Page")
+        self.main_lbl.setStyleSheet("""QLabel{color: rgb(250, 150, 0);
+                                              font-weight: bold}""")
+        self.main_layout.addWidget(self.main_lbl)
+
+        self.bg_frame = QtWidgets.QFrame()
+        self.bg_frame.setAutoFillBackground(True)
+        self.bg_frame.setStyleSheet("""QFrame{background-color: #f3f3f3;
+                                              border-radius: 10px}""")
+        #self.bg_frame.setContentsMargins(5,5,5,5)
+        self.bg_layout = QtWidgets.QVBoxLayout()
+        self.bg_layout.setSpacing(5)
+        self.bg_frame.setLayout(self.bg_layout)
+
+        self.main_layout.addWidget(self.bg_frame)
+        self.main_layout.setSpacing(3)
+        self.setLayout(self.main_layout)
+
+        self.entries = []
+
+    def append_entry(self, idx, text, widget):
+
+        entry = OnThisPageEntry(target_widget=widget, text=text, parent=self)
+        self.bg_layout.insertWidget(idx, entry)
+        self.entries.append(entry)
+
 # HELP WIDGETS
-class TextBlock(QtGui.QWidget, WidgetInterface):
+class TextBlock(QtWidgets.QWidget, WidgetInterface):
     """ Basic automatically resizable text block used for multilines
         string texts.
     """
@@ -796,13 +877,13 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
         self.idx = idx
         self.setAcceptDrops(True)
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         
         if show_btn:
             handle = WidgetHandle(parent=self)
             layout.addWidget(handle)
         
-        self.text = QtGui.QTextEdit()
+        self.text = QtWidgets.QTextEdit()
         self.text.setAcceptDrops(False)
         self.text.setPlainText(text)
 
@@ -815,9 +896,9 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
         
         self.text.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.text.setWordWrapMode(QtGui.QTextOption.WordWrap)
-        self.text.setLineWrapMode(QtGui.QTextEdit.LineWrapMode.WidgetWidth)
-        self.text.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                                QtGui.QSizePolicy.MinimumExpanding)
+        self.text.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.WidgetWidth)
+        self.text.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                                QtWidgets.QSizePolicy.MinimumExpanding)
         self.setStyleSheet("""QTextEdit{background-color: transparent;
                                          border: 0px;
                                          color: black}
@@ -825,7 +906,7 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
         layout.addWidget(self.text)
         
         if show_btn:
-            delete_btn = QtGui.QToolButton()
+            delete_btn = QtWidgets.QToolButton()
             delete_btn.setStyleSheet("""QToolButton{background-color:
                                         transparent;border: 0px}""")
             delete_btn.setIcon(get_icon("close"))
@@ -833,8 +914,8 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
             layout.addWidget(delete_btn)
 
         layout.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Maximum)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                           QtWidgets.QSizePolicy.Maximum)
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
@@ -866,7 +947,7 @@ class TextBlock(QtGui.QWidget, WidgetInterface):
 
         return '\n\n//TEXTBLOCK\n\n\n' + self.text.toPlainText() + '\n'
 
-class MainTitle(QtGui.QWidget, WidgetInterface):
+class MainTitle(QtWidgets.QWidget, WidgetInterface):
 
     def __init__(self, text="", idx=0, context="", asset=None,
                  icon="", icon_data=None, parent=None):
@@ -877,10 +958,10 @@ class MainTitle(QtGui.QWidget, WidgetInterface):
 
         self.setAcceptDrops(True)
 
-        layout = QtGui.QHBoxLayout()
-        text_layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
+        text_layout = QtWidgets.QVBoxLayout()
         
-        self.text = QtGui.QLineEdit()
+        self.text = QtWidgets.QLineEdit()
         self.text.setAcceptDrops(False)
 
         self.extra_infos = ""
@@ -904,7 +985,7 @@ class MainTitle(QtGui.QWidget, WidgetInterface):
 
         icon_pix = QtGui.QPixmap()
         icon_pix.loadFromData(self.main_icon_data)
-        icon_lbl = QtGui.QLabel("")
+        icon_lbl = QtWidgets.QLabel("")
         icon_lbl.setFixedHeight(32)
         icon_lbl.setFixedWidth(32)
         icon_lbl.setPixmap(icon_pix)
@@ -922,7 +1003,7 @@ class MainTitle(QtGui.QWidget, WidgetInterface):
 
         k = self.asset.type().category().name().lower()
         context_txt = CONTEXT_REMAP.get(k, "Unknown category node")
-        context_lbl = QtGui.QLabel(context_txt)
+        context_lbl = QtWidgets.QLabel(context_txt)
         context_lbl.setStyleSheet("""QLabel{color: grey;
                                             font-size: 10pt;
                                             font-family: Arial}""")
@@ -930,7 +1011,7 @@ class MainTitle(QtGui.QWidget, WidgetInterface):
 
         layout.addLayout(text_layout)
         
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent; border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -938,8 +1019,8 @@ class MainTitle(QtGui.QWidget, WidgetInterface):
         layout.addWidget(delete_btn)
 
         layout.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Maximum)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                           QtWidgets.QSizePolicy.Maximum)
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
@@ -989,7 +1070,7 @@ class MainTitle(QtGui.QWidget, WidgetInterface):
         return "\n\n//MAINTITLE\n\n\n" + '= ' + self.text.text() + \
                 ' =\n' + self.extra_infos
 
-class Title(QtGui.QWidget, WidgetInterface):
+class Title(QtWidgets.QWidget, WidgetInterface):
     """ Simple line text input for title help widget.
     """
     def __init__(self, title_type=None, text="Title", idx=0,
@@ -1001,12 +1082,12 @@ class Title(QtGui.QWidget, WidgetInterface):
         self.title_type = title_type
         self.setAcceptDrops(True)
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
 
         handle = WidgetHandle(parent=self)
         layout.addWidget(handle)
 
-        self.text = QtGui.QLineEdit()
+        self.text = QtWidgets.QLineEdit()
         self.text.setAcceptDrops(False)
         self.extra_infos = ""
 
@@ -1024,7 +1105,7 @@ class Title(QtGui.QWidget, WidgetInterface):
                               QLineEdit:hover{background-color: rgba(0,0,80,16)}""")
         layout.addWidget(self.text)
         
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent; border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -1032,8 +1113,8 @@ class Title(QtGui.QWidget, WidgetInterface):
         layout.addWidget(delete_btn)
 
         layout.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Maximum)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                           QtWidgets.QSizePolicy.Maximum)
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
@@ -1056,7 +1137,7 @@ class Title(QtGui.QWidget, WidgetInterface):
         return '\n\n//TITLE\n\n\n== '+ self.text.text() + \
                ' ' + ' ==' +'\n'
 
-class Bullet(QtGui.QWidget, WidgetInterface):
+class Bullet(QtWidgets.QWidget, WidgetInterface):
     """ Text block formatted with a small bullet icon
     """
     def __init__(self, text="item", idx=0, parent=None):
@@ -1067,15 +1148,15 @@ class Bullet(QtGui.QWidget, WidgetInterface):
 
         self.setAcceptDrops(True)
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.setSpacing(5)
 
         handle = WidgetHandle(parent=self)
         layout.addWidget(handle)
 
-        ico_lay = QtGui.QVBoxLayout()
+        ico_lay = QtWidgets.QVBoxLayout()
         ico_lay.setContentsMargins(5,5,5,5)
-        self.ico = QtGui.QLabel("")
+        self.ico = QtWidgets.QLabel("")
         self.ico.setFixedSize(10,10)
         self.ico.setPixmap(get_icon("s_dot").pixmap(6,6))
         self.ico.setAlignment(QtCore.Qt.AlignTop)
@@ -1086,7 +1167,7 @@ class Bullet(QtGui.QWidget, WidgetInterface):
         self.text = TextBlock(text=text, show_btn=False)
         layout.addWidget(self.text)
         
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent; border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -1111,7 +1192,7 @@ class Bullet(QtGui.QWidget, WidgetInterface):
         return '\n\n//BULLET\n\n\n* ' \
                + self.text.toPlainText().replace('\n', ' ') + '\n'
 
-class _tiw(QtGui.QWidget, WidgetInterface):
+class _tiw(QtWidgets.QWidget, WidgetInterface):
     """ Base class for Tips, Warning and Info widgets
     """
     def __init__(self, text="tips", idx=0, parent=None):
@@ -1136,23 +1217,23 @@ class _tiw(QtGui.QWidget, WidgetInterface):
 
         self.setAcceptDrops(True)
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
 
         handle = WidgetHandle(parent=self)
         layout.addWidget(handle)
 
-        tips_layout = QtGui.QVBoxLayout()
+        tips_layout = QtWidgets.QVBoxLayout()
 
-        tip_lbl_lay = QtGui.QHBoxLayout()
+        tip_lbl_lay = QtWidgets.QHBoxLayout()
         tip_lbl_lay.setAlignment(QtCore.Qt.AlignLeft)
         tip_lbl_lay.setSpacing(5)
 
-        tip_ico = QtGui.QLabel("")
+        tip_ico = QtWidgets.QLabel("")
         tip_ico.setFixedHeight(16)
         tip_ico.setFixedWidth(16)
         tip_ico.setPixmap(get_icon(self.icon).pixmap(16,16))
         tip_lbl_lay.addWidget(tip_ico)
-        tip_lbl = QtGui.QLabel(self.icon_lbl)
+        tip_lbl = QtWidgets.QLabel(self.icon_lbl)
         tip_lbl_lay.addWidget(tip_lbl)
         color_str = ','.join([str(self.color.red()),
                               str(self.color.green()),
@@ -1167,7 +1248,7 @@ class _tiw(QtGui.QWidget, WidgetInterface):
 
         layout.addItem(tips_layout)
         
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent;border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -1175,8 +1256,8 @@ class _tiw(QtGui.QWidget, WidgetInterface):
         layout.addWidget(delete_btn)
 
         layout.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Maximum)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                           QtWidgets.QSizePolicy.Maximum)
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
@@ -1230,7 +1311,7 @@ class Warning(_tiw):
         self.color = Colors.RED
         self.type = "WARNING"
 
-class Parameters(QtGui.QWidget, WidgetInterface):
+class Parameters(QtWidgets.QWidget, WidgetInterface):
     """ A grid layer widget with section name. Created from given
         selected node parameters label and help.
         Folder are formatted as section title
@@ -1337,7 +1418,7 @@ class Parameters(QtGui.QWidget, WidgetInterface):
                     else:
                         self.parms_dict[container].append([t_label, help])
         
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
 
         handle = WidgetHandle(parent=self)
@@ -1345,10 +1426,10 @@ class Parameters(QtGui.QWidget, WidgetInterface):
 
         self.top_w = parent
 
-        self.parms_layout = QtGui.QVBoxLayout()
+        self.parms_layout = QtWidgets.QVBoxLayout()
         self.parms_layout.setContentsMargins(0,0,0,0)
         self.parms_layout.setSpacing(2)
-        lbl = QtGui.QLabel("Parameters")
+        lbl = QtWidgets.QLabel("Parameters")
         lbl.setStyleSheet("""QLabel{background-color: Transparent;
                                     font-family: Arial;
                                     color: black;
@@ -1386,7 +1467,7 @@ class Parameters(QtGui.QWidget, WidgetInterface):
 
         layout.addItem(self.parms_layout)
         
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent;border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -1420,7 +1501,7 @@ class Parameters(QtGui.QWidget, WidgetInterface):
         out += "\n".join([w.output() for w in self.widgets])
         return out
 
-class ParmBlock(QtGui.QWidget):
+class ParmBlock(QtWidgets.QWidget):
     """ Parameter label / help block, used in Parameters object.
     """
     def __init__(self, parm_name, parm_help, parent=None):
@@ -1430,28 +1511,28 @@ class ParmBlock(QtGui.QWidget):
         self.parm_help = parm_help
         self.top_w = parent
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.setSpacing(1)
         layout.setContentsMargins(10,1,1,1)
 
         self.setAutoFillBackground(True)
 
         # parm's name
-        self.name = QtGui.QLabel(self.parm_name)
+        self.name = QtWidgets.QLabel(self.parm_name)
         self.name.setStyleSheet("""QLabel{background-color: #ececec;
                                           color: black;
                                           margin:2px}""")
-        self.name.setSizePolicy(QtGui.QSizePolicy.Expanding,
-                                QtGui.QSizePolicy.Minimum)
+        self.name.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                                QtWidgets.QSizePolicy.Minimum)
 
         # parm's help
         self.help = TextBlock(text=self.parm_help, show_btn=False)
         self.help.text.setStyleSheet("""QTextEdit{background-color: #ececec;
                                                   color: black}""")
-        self.help.setSizePolicy(QtGui.QSizePolicy.Expanding,
-                                QtGui.QSizePolicy.Maximum)
+        self.help.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                                QtWidgets.QSizePolicy.Maximum)
 
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent;border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -1472,7 +1553,7 @@ class ParmBlock(QtGui.QWidget):
         return "\n" + self.parm_name + ':' + \
                "\n    " + self.help.text.toPlainText().replace('\n', '\n    ') + "\n"
 
-class Separator(QtGui.QWidget, WidgetInterface):
+class Separator(QtWidgets.QWidget, WidgetInterface):
     """ Simple horizontal separator line help widget
     """
     def __init__(self, idx=0, parent=None):
@@ -1483,20 +1564,20 @@ class Separator(QtGui.QWidget, WidgetInterface):
         self.setObjectName("base")
         self.setAcceptDrops(True)
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
 
         handle = WidgetHandle(parent=self)
         layout.addWidget(handle)
 
-        sep = QtGui.QFrame()
+        sep = QtWidgets.QFrame()
         sep.setObjectName("sep")
         sep.setAcceptDrops(False)
-        sep.setFrameStyle(QtGui.QFrame.HLine)
-        sep.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Expanding)
+        sep.setFrameStyle(QtWidgets.QFrame.HLine)
+        sep.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                           QtWidgets.QSizePolicy.Expanding)
         layout.addWidget(sep)
 
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent;border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -1504,8 +1585,8 @@ class Separator(QtGui.QWidget, WidgetInterface):
         layout.addWidget(delete_btn)
 
         layout.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Maximum)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                           QtWidgets.QSizePolicy.Maximum)
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
@@ -1525,7 +1606,7 @@ class Separator(QtGui.QWidget, WidgetInterface):
 
         return '\n\n//SEPARATOR\n\n\n~~~\n'
 
-class TextBox(QtGui.QWidget, WidgetInterface):
+class TextBox(QtWidgets.QWidget, WidgetInterface):
     """ Text block formatted in a rounded edges colored box.
     """
     def __init__(self, text="text", idx=0,
@@ -1539,7 +1620,7 @@ class TextBox(QtGui.QWidget, WidgetInterface):
         self.color = getattr(BoxColors, color_str.upper())
         self.color_str = color_str
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
 
         handle = WidgetHandle(parent=self)
         handle.setObjectName("handle")
@@ -1547,7 +1628,7 @@ class TextBox(QtGui.QWidget, WidgetInterface):
                                               border: 0px}""")
         layout.addWidget(handle)
 
-        self.text_input = QtGui.QTextEdit()
+        self.text_input = QtWidgets.QTextEdit()
         self.text_input.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.text_input.setText(text)
         mh = self.text_input.document().size().height() + 20
@@ -1557,14 +1638,14 @@ class TextBox(QtGui.QWidget, WidgetInterface):
         self.text_input.setViewportMargins(10,10,10,10)
         layout.addWidget(self.text_input)
 
-        change_color_btn = QtGui.QToolButton()
+        change_color_btn = QtWidgets.QToolButton()
         change_color_btn.setStyleSheet("""QToolButton{background-color:
                                           transparent;border: 0px}""")
         change_color_btn.setIcon(get_icon("color"))
         change_color_btn.clicked.connect(self.change_color)
         layout.addWidget(change_color_btn)
 
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent;border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -1572,8 +1653,8 @@ class TextBox(QtGui.QWidget, WidgetInterface):
         layout.addWidget(delete_btn)
 
         layout.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Maximum)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                           QtWidgets.QSizePolicy.Maximum)
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
@@ -1622,7 +1703,7 @@ class TextBox(QtGui.QWidget, WidgetInterface):
                self.color_str + '\n    ' + \
                self.text_input.toPlainText().replace('\n', ' ')
 
-class ImageFromDisk(QtGui.QWidget, WidgetInterface):
+class ImageFromDisk(QtWidgets.QWidget, WidgetInterface):
     """ Fetch a png image from disk and add it to the help card.
         The file is embedded in the asset external file section with the
         output() method is called. The link in the help card 
@@ -1644,7 +1725,7 @@ class ImageFromDisk(QtGui.QWidget, WidgetInterface):
             with open(img, 'rb') as f: data = f.read()
             self.img_data = data
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
 
         handle = WidgetHandle(parent=self)
         layout.addWidget(handle)
@@ -1652,13 +1733,13 @@ class ImageFromDisk(QtGui.QWidget, WidgetInterface):
         pixmap = QtGui.QPixmap()
         pixmap.loadFromData(self.img_data)
 
-        self.img = QtGui.QLabel("")
+        self.img = QtWidgets.QLabel("")
         self.img.setFixedHeight(pixmap.height())
         self.img.setFixedWidth(pixmap.width())
         self.img.setPixmap(pixmap)
         layout.addWidget(self.img)
 
-        delete_btn = QtGui.QToolButton()
+        delete_btn = QtWidgets.QToolButton()
         delete_btn.setStyleSheet("""QToolButton{background-color:
                                     transparent;border: 0px}""")
         delete_btn.setIcon(get_icon("close"))
@@ -1666,8 +1747,8 @@ class ImageFromDisk(QtGui.QWidget, WidgetInterface):
         layout.addWidget(delete_btn)
 
         layout.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
-                           QtGui.QSizePolicy.Maximum)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                           QtWidgets.QSizePolicy.Maximum)
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
