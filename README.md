@@ -1,4 +1,4 @@
-This is the first version of "Helpcard maker" for Houdini 14 to houdini 15.5.
+This is the first version of "Helpcard maker" for Houdini houdini 15.5+.
 
 To install it follow these steps:
 
