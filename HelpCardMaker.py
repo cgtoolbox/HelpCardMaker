@@ -20,6 +20,8 @@ VERSION = "0.9.4"
 
 import hou
 import os
+import tempfile
+import uuid
 from collections import OrderedDict
 
 from PySide2 import QtGui
@@ -136,23 +138,26 @@ class WidgetHandle(QtWidgets.QFrame):
 
         mask_pix = QtGui.QPixmap(QtCore.QSize(pix_w, pix_h))
  
-        painter	= QtWidgets.QPainter(mask_pix)
+        w_pix = QtGui.QPixmap(widget_size)
+        self.widget.render(w_pix)
+
+        painter	= QtGui.QPainter(mask_pix)
         
-        gradient = QtWidgets.QLinearGradient(QtCore.QPointF(mask_pix.rect().topLeft()),
+        gradient = QtGui.QLinearGradient(QtCore.QPointF(mask_pix.rect().topLeft()),
 				                   QtCore.QPointF(mask_pix.rect().bottomLeft()))
         gradient.setColorAt(0, QtGui.QColor(200, 200, 200))
         gradient.setColorAt(0.5, QtGui.QColor(200, 200, 200))
         gradient.setColorAt(1, QtCore.Qt.black)
-        brush = QtWidgets.QBrush(gradient)
+        brush = QtGui.QBrush(gradient)
         
+        painter.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+        painter.fillRect(QtCore.QRectF(0, 0, pix_w, pix_h), w_pix)
+        
+        painter.setCompositionMode(QtGui.QPainter.CompositionMode_DestinationIn)
         painter.fillRect(QtCore.QRectF(0, 0, pix_w, pix_h), brush) 
         painter.end()
         
-        w_pix = QtGui.QPixmap(widget_size)
-        self.widget.render(w_pix)
-
         pix = w_pix.copy(0, 0, pix_w, pix_h)
-        pix.setAlphaChannel(mask_pix)
 
         mimeData = QtCore.QMimeData()
         mimeData.setText("%W%;" + str(self.widget.idx))
@@ -267,16 +272,19 @@ class wSep(QtWidgets.QFrame):
         self.setFixedHeight(34)
 
 # MAIN INTERFACE
-class MainPanel(QtWidgets.QFrame):
+class MainPanel(QtWidgets.QMainWindow):
     """ Main UI for pypanel creation
     """
     def __init__(self, parent=None):
         super(MainPanel, self).__init__(parent=parent)
 
+        cw = QtWidgets.QWidget()
+
         self.setProperty("houdiniStyle", True)
 
         self.main_layout = QtWidgets.QVBoxLayout()
         self.main_layout.setSpacing(5)
+        #self.setFocusPolicy(QtCore.Qt.ClickFocus)
 
         # toolbar
         self.toolbar = QtWidgets.QHBoxLayout()
@@ -402,7 +410,9 @@ class MainPanel(QtWidgets.QFrame):
         self.main_layout.addWidget(self.scroll_area)
 
         self.main_layout.setAlignment(QtCore.Qt.AlignTop)
-        self.setLayout(self.main_layout)
+        
+        cw.setLayout(self.main_layout)
+        self.setCentralWidget(cw)
 
     def hide_on_this_page(self):
 
@@ -546,9 +556,22 @@ class MainPanel(QtWidgets.QFrame):
                 w.idx = idx
                 self.scroll_lay.insertWidget(idx, w)
                 self.ui_widgets.insert(idx, w)
+        
+        self.refresh_ids()
+
+    def refresh_ids(self):
 
         for i, w in enumerate(self.ui_widgets):
             w.idx = i
+
+    def add_image_from_clip(self, img_path):
+        
+        w = ImageFromDisk(img=img_path, parent=self)
+
+        idx = len(self.ui_widgets) + 1
+        self.scroll_lay.insertWidget(idx, w)
+        self.ui_widgets.insert(idx, w)
+        self.refresh_ids()
 
     def get_help_str(self):
         """ Fetch all the output help string from widgets
@@ -784,7 +807,7 @@ class MainPanel(QtWidgets.QFrame):
 
 class ScrollWidget(QtWidgets.QWidget):
     """ Custom widget used in scroll area which supports drag an drop
-        system for helkp widgets creation
+        system for help widgets creation
     """
     def __init__(self, parent=None):
         super(ScrollWidget, self).__init__(parent=parent)
@@ -793,14 +816,34 @@ class ScrollWidget(QtWidgets.QWidget):
         self.setAutoFillBackground(True)
         self.top_w = parent
         self.setStyleSheet("""QWidget{background-color: white;}""")
-
-    def dragEnterEvent(self, event):
-
-        return
-
-    def dragMoveEvent(self, event):
+        self.setFocus()
         
-        return
+    def mousePressEvent(self, event):
+
+        self.setFocus()
+
+    def keyPressEvent(self, event):
+            
+        if event.matches(QtGui.QKeySequence.Paste):
+
+            try:
+                clip = QtGui.QClipboard()
+                img = clip.image()
+                if img.isNull():
+                    return super(ScrollWidget, self).keyPressEvent(event)
+
+                temp = tempfile.gettempdir() + os.sep + uuid.uuid4().hex + ".png"
+
+                img.save(temp)
+                self.top_w.add_image_from_clip(temp)
+            except Exception as e:
+                print("Invalid clipboard: " + str(e))
+
+        super(ScrollWidget, self).keyPressEvent(event)
+
+    def mouseEnterEvent(self, event):
+
+        self.setFocus()
 
     def dropEvent(self, event):
         
