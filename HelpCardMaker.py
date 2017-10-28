@@ -15,9 +15,29 @@ from PySide2 import QtGui
 from PySide2 import QtCore
 from PySide2 import QtWidgets
 
-ICONS = os.path.dirname(__file__) + "\\icons\\"
 def get_icon(name):
-    return QtGui.QIcon(ICONS + name + ".png")
+    
+    try:
+        return hou.ui.createQtIcon("HelpcardMaker/" + name + ".png")
+    except:
+        print("Error: icons not found.")
+        return QtGui.QIcon("")
+
+# CSS
+
+kbd = """p {font-family: inherit;background-color: #f7f7f7;border: 1px solid #ccc;color: #333;font-size: 0.8em;line-height: 1.4;text-shadow: 0 1px 0 #fff;display: inline-block;padding: 0.1em 0.6em;margin: 0 0.1em;white-space: nowrap;box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 0 0 2px #fff inset;border-radius: 3px;}"""
+
+TEST_HTML = """
+    <html>
+    <style type="text/css">
+        p {font-family: inherit;background-color: #f7f7f7;border: 1px solid #ccc;color: #333;font-size: 0.8em;line-height: 1.4;text-shadow: 0 1px 0 #fff;display: inline-block;padding: 0.1em 0.6em;margin: 0 0.1em;white-space: nowrap;box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 0 0 2px #fff inset;border-radius: 3px;}
+        div {color: blue}
+    </style>
+    <body>   
+    <p>This is  a paragraph</p>
+    </body>   
+    </html>
+"""
 
 # UTILITIES
 class Colors(object):
@@ -1632,6 +1652,10 @@ class Separator(QtWidgets.QWidget, WidgetInterface):
     def dragMoveEvent(self, event):
         return WidgetInterface.dragMoveEvent(self, event)
 
+    def data(self):
+
+        return {"type":"Separator"}
+
     def output(self):
 
         return '\n\n//SEPARATOR\n\n\n~~~\n'
@@ -1725,6 +1749,12 @@ class TextBox(QtWidgets.QWidget, WidgetInterface):
 
         self.text_input.setFixedHeight(self.text_input.document().size().height() + 20)
         super(TextBox, self).keyReleaseEvent(event)
+
+    def data(self):
+
+        return {"type" : "TextBox",
+                text : self.text_input.toPlainText(),
+                color_str : self.color_str}
 
     def output(self):
 
