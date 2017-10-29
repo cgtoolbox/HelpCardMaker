@@ -5,10 +5,34 @@
  used by the application.  Note, that two definitions of the
  same interface or of the interfaces menu are not allowed
  in a single file. -->
-  <interfacesMenu type="toolbar">
-    <interfaceItem name="HelpCardMaker"/>
-  </interfacesMenu>
-  <interfacesMenu type="panetab">
-    <interfaceItem name="HelpCardMaker"/>
-  </interfacesMenu>
+  <interface name="HelpCardMaker" label="Help Card Maker" icon="MISC_python" help_url="">
+    <script><![CDATA[def createInterface():
+
+    try:
+    
+        from HelpCardMaker import HelpCardMaker
+        reload(HelpCardMaker)
+    
+        widget = HelpCardMaker.MainPanel()
+        return widget
+    
+    except Exception as e:
+            
+        try:
+            from PySide2 import QtWidgets
+            msg = "ERROR: can not create pypanel\n\n" + str(e) + \
+                  '\n\n' + traceback.format_exc() + \
+                  "\nSend an email to support@cgtoolbox.com" + \
+                  " with this error message."
+            w = QtWidgets.QTextEdit()
+            w.setText(msg)
+            w.setReadOnly(True)
+            return w
+            
+        except ImportError:
+            print "ERROR: PySide2 ( Qt5 ) build is required."
+]]></script>
+    <includeInPaneTabMenu menu_position="0" create_separator="false"/>
+    <help><![CDATA[]]></help>
+  </interface>
 </pythonPanelDocument>
