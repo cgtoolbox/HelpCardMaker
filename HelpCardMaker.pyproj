@@ -5,13 +5,13 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>fa792401-2b63-40b0-8a96-aa5adbe4b38e</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>HelpCardMaker.py</StartupFile>
-    <SearchPath>
-    </SearchPath>
+    <StartupFile>scripts\python\HelpCardMaker.py</StartupFile>
+    <SearchPath>C:\Program Files\Side Effects Software\Houdini 16.5.323\python27\lib\site-packages-ui-forced;C:\Program Files\Side Effects Software\Houdini 16.5.323\python27\lib\site-packages-forced;C:\Program Files\Side Effects Software\Houdini 16.5.323\bin;C:\Program Files\Side Effects Software\Houdini 16.5.323\houdini\python2.7libs</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>HelpCardMaker</Name>
     <RootNamespace>HelpCardMaker</RootNamespace>
+    <InterpreterId>Global|VisualStudio|HouPy_16_5_323</InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,30 +22,56 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="HelpCardMaker.py" />
+    <Compile Include="scripts\python\HelpCardMaker.py" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="icons\" />
+    <Folder Include="config\Icons\" />
+    <Folder Include="config\Icons\HelpcardMaker\" />
+    <Folder Include="config\" />
+    <Folder Include="scripts\" />
+    <Folder Include="scripts\python\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="icons\bullet.png" />
-    <Content Include="icons\drawing.png" />
-    <Content Include="icons\eye_close.png" />
-    <Content Include="icons\eye_open.png" />
-    <Content Include="icons\font_bold.png" />
-    <Content Include="icons\font_italic.png" />
-    <Content Include="icons\header.png" />
-    <Content Include="icons\numbering.png" />
-    <Content Include="icons\paste.png" />
-    <Content Include="icons\select_all.png" />
-    <Content Include="icons\view_gridline.png" />
+    <InterpreterReference Include="Global|VisualStudio|HouPy_16_5_323" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="config\Icons\HelpcardMaker\apply.png" />
+    <Content Include="config\Icons\HelpcardMaker\box.png" />
+    <Content Include="config\Icons\HelpcardMaker\bullet.png" />
+    <Content Include="config\Icons\HelpcardMaker\clean.png" />
+    <Content Include="config\Icons\HelpcardMaker\close.png" />
+    <Content Include="config\Icons\HelpcardMaker\color.png" />
+    <Content Include="config\Icons\HelpcardMaker\edit.png" />
+    <Content Include="config\Icons\HelpcardMaker\eye_close.png" />
+    <Content Include="config\Icons\HelpcardMaker\eye_open.png" />
+    <Content Include="config\Icons\HelpcardMaker\font_bold.png" />
+    <Content Include="config\Icons\HelpcardMaker\font_italic.png" />
+    <Content Include="config\Icons\HelpcardMaker\header.png" />
+    <Content Include="config\Icons\HelpcardMaker\help.png" />
+    <Content Include="config\Icons\HelpcardMaker\helpcardmaker.png" />
+    <Content Include="config\Icons\HelpcardMaker\html.png" />
+    <Content Include="config\Icons\HelpcardMaker\image.png" />
+    <Content Include="config\Icons\HelpcardMaker\info.png" />
+    <Content Include="config\Icons\HelpcardMaker\numbering.png" />
+    <Content Include="config\Icons\HelpcardMaker\open_card.png" />
+    <Content Include="config\Icons\HelpcardMaker\para.png" />
+    <Content Include="config\Icons\HelpcardMaker\paste.png" />
+    <Content Include="config\Icons\HelpcardMaker\select_all.png" />
+    <Content Include="config\Icons\HelpcardMaker\sep.png" />
+    <Content Include="config\Icons\HelpcardMaker\s_dot.png" />
+    <Content Include="config\Icons\HelpcardMaker\s_info.png" />
+    <Content Include="config\Icons\HelpcardMaker\s_tips.png" />
+    <Content Include="config\Icons\HelpcardMaker\s_warning.png" />
+    <Content Include="config\Icons\HelpcardMaker\text_block.png" />
+    <Content Include="config\Icons\HelpcardMaker\tips.png" />
+    <Content Include="config\Icons\HelpcardMaker\title1.png" />
+    <Content Include="config\Icons\HelpcardMaker\title2.png" />
+    <Content Include="config\Icons\HelpcardMaker\view_gridline.png" />
+    <Content Include="config\Icons\HelpcardMaker\warning.png" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
-    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
-  <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
-  <Import Condition="!Exists($(PtvsTargetsFile))" Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
        Visual Studio and specify your pre- and post-build commands in
        the BeforeBuild and AfterBuild targets below. -->
@@ -54,4 +80,5 @@
   </Target>
   <Target Name="AfterBuild">
   </Target>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
