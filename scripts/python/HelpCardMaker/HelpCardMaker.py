@@ -9,6 +9,7 @@ import hou
 import os
 import tempfile
 import uuid
+import traceback
 from collections import OrderedDict
 
 from PySide2 import QtGui

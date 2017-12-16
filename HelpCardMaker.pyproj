@@ -28,6 +28,7 @@
     <Folder Include="config\Icons\" />
     <Folder Include="config\Icons\HelpcardMaker\" />
     <Folder Include="config\" />
+    <Folder Include="python_panels\" />
     <Folder Include="scripts\" />
     <Folder Include="scripts\python\" />
   </ItemGroup>
@@ -35,6 +36,7 @@
     <InterpreterReference Include="Global|VisualStudio|HouPy_16_5_323" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="build_infos.txt" />
     <Content Include="config\Icons\HelpcardMaker\apply.png" />
     <Content Include="config\Icons\HelpcardMaker\box.png" />
     <Content Include="config\Icons\HelpcardMaker\bullet.png" />
@@ -68,6 +70,7 @@
     <Content Include="config\Icons\HelpcardMaker\title2.png" />
     <Content Include="config\Icons\HelpcardMaker\view_gridline.png" />
     <Content Include="config\Icons\HelpcardMaker\warning.png" />
+    <Content Include="python_panels\HelpCardMaker.pypanel" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

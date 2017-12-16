@@ -17,6 +17,8 @@
         return widget
     
     except Exception as e:
+    
+        import traceback
             
         try:
             from PySide2 import QtWidgets
