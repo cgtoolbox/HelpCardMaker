@@ -1,6 +1,5 @@
 $NAME:HelpCardMaker
 $DOC_LINK:cgtoolbox.com/helpcard-maker/
-scripts/python/HelpCardMaker:HelpCardMaker.py
-scripts/python/HelpCardMaker:__init__.py
-python_panels:pypanel/HelpCardMaker.pypanel
-config/Icons/HelpcardMaker:icons/HelpcardMaker
+scripts:scripts
+python_panels:python_panels
+config:config
