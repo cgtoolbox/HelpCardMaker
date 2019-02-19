@@ -3,7 +3,7 @@
 
 # Author:  Guillaume Jobst
 
-VERSION = "0.9.4"
+VERSION = "0.9.5"
 
 import hou
 import os
@@ -228,7 +228,7 @@ class CLabel(QtWidgets.QWidget):
 
     def output(self):
 
-        return self.lbl.text() + '\n'
+        return self.lbl.text()
 
 class ColorChooser(QtWidgets.QDialog):
     """ Custom color picker with button. Parse the given color_class
@@ -586,7 +586,7 @@ class MainPanel(QtWidgets.QMainWindow):
         """
         return "//HELP CARD MAKER " + VERSION + '\n' + \
                '\n'.join([w.output() for w in self.ui_widgets]) + \
-               "\n\n\n//END"
+               "\n//END"
 
     def apply_help(self):
         """ Apply the sideFX help-wiki formatted strings to the section "Help" of
@@ -804,7 +804,7 @@ class MainPanel(QtWidgets.QMainWindow):
         """
         message = "Houdini Help card maker, version:" + VERSION + "\n\n"
         message += "Created by Guillaume Jobst\n\n"
-        message += "More infos:\ncontact@guillaume-j.com\nwww.guillaume-j.com"
+        message += "More infos:\ncontact@cgtoolbox.com\nwww.cgtoolbox.com"
 
         w = QtWidgets.QMessageBox()
         w.setStyleSheet(hou.ui.qtStyleSheet())
@@ -994,9 +994,13 @@ class TextBlock(QtWidgets.QWidget, WidgetInterface):
         self.update_height()
         super(TextBlock, self).resizeEvent(event)
 
+    def toPlainText(self):
+
+        return self.text.toPlainText()
+
     def output(self):
 
-        return '\n\n//TEXTBLOCK\n\n\n' + self.text.toPlainText() + '\n'
+        return '//TEXTBLOCK' + self.text.toPlainText()
 
 class MainTitle(QtWidgets.QWidget, WidgetInterface):
 
@@ -1113,12 +1117,12 @@ class MainTitle(QtWidgets.QWidget, WidgetInterface):
             section.setContents(self.main_icon_data)
 
         self.extra_infos += "#icon: opdef:" + node_type.nameWithCategory()
-        self.extra_infos += "?" + self.main_icon_section + '\n'
+        self.extra_infos += "?" + self.main_icon_section
 
     def output(self):
 
         self.save_icon()
-        return "\n\n//MAINTITLE\n\n\n" + '= ' + self.text.text() + \
+        return "//MAINTITLE\n" + '= ' + self.text.text() + \
                 ' =\n' + self.extra_infos
 
 class Title(QtWidgets.QWidget, WidgetInterface):
@@ -1181,12 +1185,12 @@ class Title(QtWidgets.QWidget, WidgetInterface):
     def output(self):
         
         if self.title_type == TitleType.ENTRY_MENU:
-            return "\n\n//TITLEENTIRYMENU\n\n\n@" + \
+            return "//TITLEENTIRYMENU\n@" + \
                    self.text.text().replace(' ', '') + ' ' + \
-                   self.text.text() + '\n'
+                   self.text.text()
 
-        return '\n\n//TITLE\n\n\n== '+ self.text.text() + \
-               ' ' + ' ==' +'\n'
+        return '//TITLE\n== '+ self.text.text() + \
+               ' ' + ' =='
 
 class Bullet(QtWidgets.QWidget, WidgetInterface):
     """ Text block formatted with a small bullet icon
@@ -1240,8 +1244,8 @@ class Bullet(QtWidgets.QWidget, WidgetInterface):
 
     def output(self):
 
-        return '\n\n//BULLET\n\n\n* ' \
-               + self.text.toPlainText().replace('\n', ' ') + '\n'
+        return '//BULLET\n* ' \
+               + self.text.toPlainText().replace('\n', ' ')
 
 class _tiw(QtWidgets.QWidget, WidgetInterface):
     """ Base class for Tips, Warning and Info widgets
@@ -1323,10 +1327,10 @@ class _tiw(QtWidgets.QWidget, WidgetInterface):
 
     def output(self):
 
-        return "\n\n//"+ self.type + "\n\n\n" + \
+        return "//"+ self.type + "\n" + \
                self.type + ":\n    #display: " + \
                self.color_n + "\n    " + \
-               self.text.text.toPlainText() + "\n"
+               self.text.text.toPlainText()
 
 class Tips(_tiw):
     """ Tips formatted help text ( with bulb icon )
@@ -1547,7 +1551,7 @@ class Parameters(QtWidgets.QWidget, WidgetInterface):
 
     def output(self):
 
-        out = "\n\n//PARAMETERS\n\n\n"
+        out = "//PARAMETERS\n"
         out += "@parameters\n"
         out += "\n".join([w.output() for w in self.widgets])
         return out
@@ -1601,8 +1605,8 @@ class ParmBlock(QtWidgets.QWidget):
 
     def output(self):
         
-        return "\n" + self.parm_name + ':' + \
-               "\n    " + self.help.text.toPlainText().replace('\n', '\n    ') + "\n"
+        return self.parm_name + ':' + \
+               "\n    " + self.help.text.toPlainText().replace('\n', '\n    ')
 
 class Separator(QtWidgets.QWidget, WidgetInterface):
     """ Simple horizontal separator line help widget
@@ -1659,7 +1663,7 @@ class Separator(QtWidgets.QWidget, WidgetInterface):
 
     def output(self):
 
-        return '\n\n//SEPARATOR\n\n\n~~~\n'
+        return '//SEPARATOR\n~~~'
 
 class TextBox(QtWidgets.QWidget, WidgetInterface):
     """ Text block formatted in a rounded edges colored box.
@@ -1759,7 +1763,7 @@ class TextBox(QtWidgets.QWidget, WidgetInterface):
 
     def output(self):
 
-        return '\n\n//TEXTBOX\n\n\n' + \
+        return '//TEXTBOX\n' + \
                '\n:box:\n    #display: bordered ' + \
                self.color_str + '\n    ' + \
                self.text_input.toPlainText().replace('\n', ' ')
@@ -1842,5 +1846,5 @@ class ImageFromDisk(QtWidgets.QWidget, WidgetInterface):
 
         tag = node.type().nameWithCategory() + "?"
 
-        return "\n\n//IMG\n\n\n" + \
-               "\n[Image:opdef:/"+ tag + self.section_name + "]\n"
+        return "//IMG\n" + \
+               "\n[Image:opdef:/"+ tag + self.section_name + "]"
