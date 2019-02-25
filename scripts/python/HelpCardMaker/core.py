@@ -288,7 +288,7 @@ class CLabel(QtWidgets.QWidget):
 
     def output(self):
 
-        return self.lbl.text()
+        return "\n" + self.lbl.text() + "\n"
 
 class ColorChooser(QtWidgets.QDialog):
     """ Custom color picker with button. Parse the given color_class
@@ -332,9 +332,12 @@ class ColorChooser(QtWidgets.QDialog):
 class wSep(QtWidgets.QFrame):
     """ smal vertival separator widget for toolbar
     """
-    def __init__(self):
+    def __init__(self, orientation=QtCore.Qt.Horizontal):
         QtWidgets.QFrame.__init__(self)
-        self.setFrameStyle(QtWidgets.QFrame.VLine)
+        if orientation == QtCore.Qt.Horizontal:
+            self.setFrameStyle(QtWidgets.QFrame.HLine)
+        else:
+            self.setFrameStyle(QtWidgets.QFrame.VLine)
         self.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
                            QtWidgets.QSizePolicy.Expanding)
         self.setFixedHeight(34)

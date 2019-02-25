@@ -333,7 +333,7 @@ class _tiw(QtWidgets.QFrame, WidgetInterface):
         tip_lbl_lay.setAlignment(QtCore.Qt.AlignLeft)
         tip_lbl_lay.setSpacing(10)
 
-        v_sep = wSep()
+        v_sep = wSep(orientation=QtCore.Qt.Vertical)
         v_sep.setFixedWidth(2)
         self.main_layout.addWidget(v_sep)
 
@@ -527,18 +527,18 @@ class Parameters(QtWidgets.QWidget, WidgetInterface):
                         self.parms_dict[container].append([t_label, help])
 
         self.top_w = parent
-
+        self.setContentsMargins(0,0,0,0)
         self.parms_layout = QtWidgets.QVBoxLayout()
         self.parms_layout.setContentsMargins(0,0,0,0)
-        self.parms_layout.setSpacing(2)
-        lbl = QtWidgets.QLabel("Parameters")
+        self.parms_layout.setSpacing(0)
+        lbl = QtWidgets.QLabel("PARAMETERS")
         lbl.setStyleSheet("""QLabel{background-color: Transparent;
-                                    font-family: Arial;
+                                    font-family: Source Sans Pro;
                                     color: black;
-                                    font-size: 15pt;
-                                    font-weight: bold}""")
+                                    font-size: 10pt}""")
         self.parms_layout.addWidget(lbl)
-
+        self.parms_layout.addWidget(wSep())
+        
         # orphan params
         for k in self.parms_dict["_NO_FOLDER_"]:
 
@@ -553,9 +553,8 @@ class Parameters(QtWidgets.QWidget, WidgetInterface):
             k_lbl = CLabel(k, parent=self)
             self.parm_blocks.append(k_lbl)
             k_lbl.setStyleSheet("""QLabel{background-color: Transparent;
-                                            font-family: Arial; 
+                                            font-family: Source Sans Pro; 
                                             font-size: 10pt;
-                                            font-weight: bold;
                                             color: black;}""")
             self.parms_layout.addWidget(k_lbl)
             self.widgets.append(k_lbl)
@@ -609,23 +608,31 @@ class ParmBlock(QtWidgets.QWidget):
         self.top_w = parent
 
         layout = QtWidgets.QHBoxLayout()
-        layout.setSpacing(1)
+        layout.setSpacing(0)
         layout.setContentsMargins(10,1,1,1)
+        self.setContentsMargins(0,0,0,0)
 
         self.setAutoFillBackground(True)
-
+        
         # parm's name
-        self.name = QtWidgets.QLabel(self.parm_name)
-        self.name.setStyleSheet("""QLabel{background-color: #ececec;
+        self.name = TextBlock(text=self.parm_name, show_btn=False, parent=self)
+        self.name.setContentsMargins(0,0,0,0)
+        self.name.text.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.name.setStyleSheet("""QTextEdit{background-color: #f2f2f2;
                                           color: black;
-                                          margin:2px}""")
+                                          font-weight: bold;
+                                          border: 0px;
+                                          font-family: Source Sans Pro;}""")
+        self.name.setMaximumWidth(200)
         self.name.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                                 QtWidgets.QSizePolicy.Minimum)
 
         # parm's help
         self.help = TextBlock(text=self.parm_help, show_btn=False, parent=self)
+        self.help.setContentsMargins(0,0,0,0)
         self.help.text.setStyleSheet("""QTextEdit{background-color: #ececec;
-                                                  color: black}""")
+                                                  color: black;
+                                                  font-family: Source Sans Pro;}""")
         self.help.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                                 QtWidgets.QSizePolicy.Maximum)
         
