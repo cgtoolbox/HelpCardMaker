@@ -103,7 +103,7 @@ class MainPanel(QtWidgets.QMainWindow):
         self.box_btn.setToolTip("Add box text")
         self.toolbar.addWidget(self.box_btn)
 
-        self.dotted_list_btn = ToolIcon("bullet", "bullet")
+        self.dotted_list_btn = ToolIcon("bullet", "bullets")
         self.dotted_list_btn.setToolTip("Add bullet text")
         self.toolbar.addWidget(self.dotted_list_btn)
 
@@ -229,8 +229,8 @@ class MainPanel(QtWidgets.QMainWindow):
         elif w_type == "note":
             w = Note(parent=self)
 
-        elif w_type == "bullet":
-            w = Bullet(parent=self)
+        elif w_type == "bullets":
+            w = Bullets(parent=self)
 
         elif w_type == "textbox":
             w = TextBox(parent=self)
@@ -483,7 +483,7 @@ class MainPanel(QtWidgets.QMainWindow):
             text = data[0].replace("== ", '').replace(" ==", '')
             w = Title(title_type=TitleType.TITLE, text=text, parent=self)
 
-        elif cluster == "BULLET":
+        elif cluster == "BULLETS":
 
             cleaned_data = []
             for _d in data:
@@ -493,7 +493,7 @@ class MainPanel(QtWidgets.QMainWindow):
                     cleaned_data.append(_d)
 
             text = "".join(cleaned_data)
-            w = Bullet(text=text, parent=self)
+            w = Bullets(texts=cleaned_data, parent=self)
 
         elif cluster == "TEXTBOX":
             title = data[0].split(':box:')[-1]

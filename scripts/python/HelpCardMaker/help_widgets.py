@@ -38,16 +38,6 @@ class TextBlock(QtWidgets.QWidget, WidgetInterface):
 
         doc = QtGui.QTextDocument()
         doc.setPlainText(text)
-        """
-        cursor = QtGui.QTextCursor(doc)
-
-        cursor.movePosition(QtGui.QTextCursor.Start);
-        cursor.movePosition(QtGui.QTextCursor.EndOfLine, QtGui.QTextCursor.KeepAnchor)
-
-        format = QtGui.QTextCharFormat()
-        format.setFontWeight(QtGui.QFont.Bold);
-
-        cursor.mergeCharFormat(format)"""
 
         self.text.setDocument(doc)
         self.text.updateGeometry()
@@ -265,12 +255,61 @@ class Title(QtWidgets.QWidget, WidgetInterface):
         return '//TITLE\n== '+ self.text.text() + \
                ' ' + ' =='
 
+class Bullets(QtWidgets.QWidget, WidgetInterface):
+
+    def __init__(self, texts=["item1", "item2", "item3"], idx=0, parent=None):
+        super(Bullets, self).__init__(parent=parent)        
+        WidgetInterface.__init__(self, idx, parent=parent)
+        
+        self.bullets = []
+
+        self.bullets_layout = QtWidgets.QVBoxLayout()
+        self.bullets_layout.setSpacing(0)
+        self.bullets_layout.setAlignment(QtCore.Qt.AlignTop)
+        for text in texts:
+            w = Bullet(text=text, parent=self)
+            self.bullets_layout.addWidget(w)
+            self.bullets.append(w)
+
+        self.main_layout.addLayout(self.bullets_layout)
+
+        self.create_delete_btn()
+        self.setLayout(self.main_layout)
+
+    def add_bullet(self, w, text=""):
+        
+        if text == "":
+            text = "item" + str(len(self.bullets) + 1)
+
+        nw = Bullet(text=text, parent=self)
+        idx = self.bullets.index(w) + 1
+
+        if idx == len(self.bullets):
+            self.bullets_layout.addWidget(nw)
+            self.bullets.append(nw)
+        else:
+            self.bullets.insert(idx, nw)
+            self.bullets_layout.insertWidget(idx, nw)
+
+    def remove_bullet(self, w):
+
+        if w in self.bullets and len(self.bullets) > 1:
+            
+            idx = self.bullets.index(w)
+            w.setParent(None)
+            self.bullets.pop(idx)
+            w.deleteLater()
+
+    def output(self):
+        
+        return "//BULLETS\n" + '\n'.join([w.output() for w in self.bullets])
+
 class Bullet(QtWidgets.QWidget, WidgetInterface):
     """ Text block formatted with a small bullet icon
     """
-    def __init__(self, text="item", idx=0, parent=None):
+    def __init__(self, text="", idx=0, parent=None):
         super(Bullet, self).__init__(parent=parent)        
-        WidgetInterface.__init__(self, idx, parent=parent)
+        WidgetInterface.__init__(self, idx, show_handle=False, parent=parent)
         
         ico_lay = QtWidgets.QVBoxLayout()
         ico_lay.setContentsMargins(5,5,5,5)
@@ -283,10 +322,36 @@ class Bullet(QtWidgets.QWidget, WidgetInterface):
         self.main_layout.addLayout(ico_lay)
 
         self.text = TextBlock(text=text, show_btn=False, parent=self)
+        self.text.text.keyPressEvent = self._keyPressEvent
         self.main_layout.addWidget(self.text)
-        
-        self.create_delete_btn()
+            
         self.setLayout(self.main_layout)
+
+    def _keyPressEvent(self, e):
+        
+        if e.key() in [QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter]:
+
+            doc = self.text.text.document()
+            cursor = self.text.text.textCursor()
+            cursor.movePosition(QtGui.QTextCursor.EndOfBlock,
+                                QtGui.QTextCursor.KeepAnchor,
+                                QtGui.QTextCursor.End)
+            cursor.select(QtGui.QTextCursor.WordUnderCursor)
+            txt = cursor.selectedText()
+            if txt != self.text.text.toPlainText():
+                cursor.removeSelectedText()
+                self.text.text.setTextCursor(cursor)
+                self.top_w.add_bullet(self, txt)
+            else:
+                self.top_w.add_bullet(self)
+
+        elif e.key() == QtCore.Qt.Key_Backspace:
+            if self.text.text.toPlainText() == "":
+                self.top_w.remove_bullet(self)
+            else:
+                QtWidgets.QTextEdit.keyPressEvent(self.text.text, e)
+        else:
+            QtWidgets.QTextEdit.keyPressEvent(self.text.text, e)
 
     def dropEvent(self, event):
         return WidgetInterface.dropEvent(self, event)
@@ -299,8 +364,7 @@ class Bullet(QtWidgets.QWidget, WidgetInterface):
 
     def output(self):
 
-        return '//BULLET\n* ' \
-               + self.text.toPlainText().replace('\n', ' ')
+        return '* ' + self.text.toPlainText().replace('\n', ' ')
 
 class _tiw(QtWidgets.QFrame, WidgetInterface):
     """ Base class for Tips, Warning and Info widgets
@@ -356,8 +420,7 @@ class _tiw(QtWidgets.QFrame, WidgetInterface):
                                         font-weight: bold;}""")
         self.setStyleSheet("""QFrame{background-color: rgba(""" + color_bg_str + """,255);}""")
         v_sep.setStyleSheet("background-color: rgba(" + color_str + ",255)")
-
-
+        
         tips_layout.addItem(tip_lbl_lay)
 
         self.text = TextBlock(text=self.default_text, show_btn=False, parent=self)
