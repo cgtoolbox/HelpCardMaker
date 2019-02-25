@@ -5,15 +5,14 @@
  used by the application.  Note, that two definitions of the
  same interface or of the interfaces menu are not allowed
  in a single file. -->
-  <interface name="HelpCardMaker" label="Help Card Maker" icon="MISC_python" help_url="">
+  <interface name="HelpCardMaker" label="Help Card Maker" icon="MISC_python" showNetworkNavigationBar="false" help_url="">
     <script><![CDATA[def createInterface():
 
     try:
+        from HelpCardMaker import main
+        reload(main)
     
-        from HelpCardMaker import HelpCardMaker
-        reload(HelpCardMaker)
-    
-        widget = HelpCardMaker.MainPanel()
+        widget = main.init_panel()
         return widget
     
     except Exception as e:

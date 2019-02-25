@@ -5,13 +5,15 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>fa792401-2b63-40b0-8a96-aa5adbe4b38e</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>scripts\python\HelpCardMaker.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath>C:\Program Files\Side Effects Software\Houdini 16.5.323\python27\lib\site-packages-ui-forced;C:\Program Files\Side Effects Software\Houdini 16.5.323\python27\lib\site-packages-forced;C:\Program Files\Side Effects Software\Houdini 16.5.323\bin;C:\Program Files\Side Effects Software\Houdini 16.5.323\houdini\python2.7libs</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>HelpCardMaker</Name>
     <RootNamespace>HelpCardMaker</RootNamespace>
-    <InterpreterId>Global|VisualStudio|HouPy_16_5_323</InterpreterId>
+    <InterpreterId>{1b5b10b2-23c8-4f6e-87cb-4176f9d8c7bf}</InterpreterId>
+    <InterpreterVersion>2.7</InterpreterVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,18 +24,17 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="scripts\python\HelpCardMaker.py" />
-  </ItemGroup>
-  <ItemGroup>
     <Folder Include="config\Icons\" />
     <Folder Include="config\Icons\HelpcardMaker\" />
     <Folder Include="config\" />
     <Folder Include="python_panels\" />
     <Folder Include="scripts\" />
     <Folder Include="scripts\python\" />
+    <Folder Include="scripts\python\HelpCardMaker\" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|VisualStudio|HouPy_16_5_323" />
+    <InterpreterReference Include="{1b5b10b2-23c8-4f6e-87cb-4176f9d8c7bf}\2.7" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="build_infos.txt" />
@@ -71,6 +72,24 @@
     <Content Include="config\Icons\HelpcardMaker\view_gridline.png" />
     <Content Include="config\Icons\HelpcardMaker\warning.png" />
     <Content Include="python_panels\HelpCardMaker.pypanel" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="scripts\python\HelpCardMaker\core.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="scripts\python\HelpCardMaker\help_widgets.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="scripts\python\HelpCardMaker\main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="scripts\python\HelpCardMaker\ui.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="scripts\python\HelpCardMaker\utils.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="scripts\python\HelpCardMaker\__init__.py" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
