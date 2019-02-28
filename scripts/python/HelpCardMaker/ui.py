@@ -119,6 +119,10 @@ class MainPanel(QtWidgets.QMainWindow):
         self.vimeo_btn.setToolTip("Add vimeo embedded video.")
         self.toolbar.addWidget(self.vimeo_btn)
 
+        self.code_btn = ToolIcon("code", "code")
+        self.code_btn.setToolTip("Add a code snippet.")
+        self.toolbar.addWidget(self.code_btn)
+
         self.toolbar.addSeparator()
 
         self.help_btn = QtWidgets.QToolButton()
@@ -265,6 +269,9 @@ class MainPanel(QtWidgets.QMainWindow):
         elif w_type == "vimeo":
 
             w = Vimeo(parent=self)
+
+        elif w_type == "code":
+            w = Code(language="python", parent=self)
 
         elif w_type.startswith("title:"):
 
@@ -511,6 +518,26 @@ class MainPanel(QtWidgets.QMainWindow):
             video_title = data[0].replace(":vimeo: ", '')
             video_id = data[1].split(':')[-1]
             w = Vimeo(title=video_title, video_id=video_id, parent=self)
+
+        elif cluster == "CODE:PYTHON" or cluster == "CODE:CPP":
+            
+            if len(data) < 4:
+                print("Helpcard Maker Error: invalid data for cluster CODE")
+                return
+
+            title = data[0].split(":box:")[-1]
+            if title == ":box:":
+                title = ""
+            else:
+                title = title.replace('\n', '')
+
+            text = data[3:-1]
+            if cluster == "CODE:PYTHON":
+                language = "python"
+            else:
+                language = "cpp"
+            
+            w = Code(text='\n'.join(text), language=language, title=title, parent=self)
 
         elif cluster == "IMG":
 

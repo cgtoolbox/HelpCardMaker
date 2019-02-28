@@ -8,6 +8,14 @@ import uuid
 import traceback
 from collections import OrderedDict
 
+try:
+    from pygments import highlight
+    from pygments.lexers import PythonLexer, CppLexer
+    from pygments.formatters import HtmlFormatter
+    _highlight_available = True
+except ImportError:
+    _highlight_available = False
+
 from PySide2 import QtGui
 from PySide2 import QtCore
 from PySide2 import QtWidgets
@@ -1065,3 +1073,106 @@ class Vimeo(QtWidgets.QWidget, WidgetInterface):
         return "//VIMEO\n" + \
                 ":vimeo: {}\n    #id:{}".format(self.title,
                                                 self.video_id)
+
+class Code(QtWidgets.QWidget, WidgetInterface):
+
+    def __init__(self, text="print 'hello world'", title="Code snippet",
+                 language="python", idx=0, parent=None):
+        super(Code, self).__init__(parent=parent)
+        WidgetInterface.__init__(self, idx=idx, parent=parent)
+
+        self.language = language
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setSpacing(2)
+
+        self.title = title
+        self.title_input = TextBlock(text=title, show_btn=False, parent=self)
+        self.title_input.setStyleSheet("""QTextEdit{background-color: transparent;
+                                         border: 0px;
+                                         color: rgb(74, 160, 163, 255)}
+                               QTextEdit:hover{background-color: rgba(0,0,80,16)}""")
+        layout.addWidget(self.title_input)
+        layout.setContentsMargins(0,0,0,0)
+
+        self.code_input = TextBlock(text=text, show_btn=False, parent=self)
+        self.update_syntax(text)
+        self.code_input.text_changed_sgn.connect(self.update_syntax)
+        layout.addWidget(self.code_input)        
+
+        self.main_layout.addLayout(layout)
+
+        self.change_language_btn = QtWidgets.QPushButton("")
+        self.change_language_btn.setFixedHeight(32)
+        self.change_language_btn.setFixedWidth(32)
+        self.change_language_btn.setFlat(True)
+        self.change_language_btn.setIconSize(QtCore.QSize(32, 32))
+        self.change_language_btn.setIcon(get_icon("python"))
+        self.change_language_btn.clicked.connect(self.switch_language)
+        self.main_layout.addWidget(self.change_language_btn)
+
+        self.create_delete_btn()
+        self.setLayout(self.main_layout)
+
+    def update_syntax(self, s):
+        
+        if not _highlight_available:
+            return
+
+        cur = self.code_input.text.textCursor()
+        cur_pos = cur.position()
+        text = self.code_input.text.toPlainText()
+        if len(text) > 1:
+            cur_char = text[cur_pos-1]
+        cur_char = ''
+
+        if cur_char == u'\n':
+            s += ' '
+        
+        tab_added = False
+        if cur_char == u'\t':
+            tab_added = True
+            s = s.replace('\t', '    ')
+        
+        if self.language == "python":
+            html_result = highlight(s, PythonLexer(), HtmlFormatter(full=True))
+        else:
+            html_result = highlight(s, CppLexer(), HtmlFormatter(full=True))
+            
+        self.code_input.text.blockSignals(True)
+        self.code_input.text.setHtml(html_result)
+        self.code_input.text.blockSignals(False)
+
+        if tab_added:
+            cur.setPosition(cur_pos + 3)
+        else:
+            cur.setPosition(cur_pos)
+
+        self.code_input.text.setTextCursor(cur)
+
+    def switch_language(self):
+
+        if self.language == "python":
+            self.change_language_btn.setIcon(get_icon("c_plus_plus"))
+            self.language = "cpp"
+        else:
+            self.change_language_btn.setIcon(get_icon("python"))
+            self.language = "python"
+
+        self.update_syntax(self.code_input.text.toPlainText())
+
+    def output(self):
+        
+        title = self.title_input.text.toPlainText()
+        if title.replace(' ', '') != '':
+            title = title.replace('\n', '')
+        else:
+            title = ''
+        
+        language = self.language
+        code = self.code_input.text.toPlainText()
+
+        return "//CODE:" + language.upper() + \
+               "\n:box:" + title + "\n{{{\n#!" + language + "\n" + \
+               code + \
+               "\n}}}"
