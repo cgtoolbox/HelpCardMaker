@@ -462,7 +462,7 @@ class _tiw(QtWidgets.QFrame, WidgetInterface):
 
     def init_values(self):
     
-        self.icon = "s_tips"
+        self.icon = "tips"
         self.icon_lbl = "Tip"
         self.color_n = "yellow"
         self.color = Colors.YELLOW
@@ -543,7 +543,7 @@ class Note(_tiw):
 
     def init_values(self):
         
-        self.icon = "s_info"
+        self.icon = "info"
         self.icon_lbl = "Info"
         self.color_n = "blue"
         self.color = Colors.BLUE
@@ -558,7 +558,7 @@ class Warning(_tiw):
 
     def init_values(self):
         
-        self.icon = "s_warning"
+        self.icon = "warning"
         self.icon_lbl = "Warning"
         self.color_n = "red"
         self.color = Colors.RED
