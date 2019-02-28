@@ -7,7 +7,8 @@
     <ProjectHome>.</ProjectHome>
     <StartupFile>
     </StartupFile>
-    <SearchPath>C:\Program Files\Side Effects Software\Houdini 16.5.323\python27\lib\site-packages-ui-forced;C:\Program Files\Side Effects Software\Houdini 16.5.323\python27\lib\site-packages-forced;C:\Program Files\Side Effects Software\Houdini 16.5.323\bin;C:\Program Files\Side Effects Software\Houdini 16.5.323\houdini\python2.7libs</SearchPath>
+    <SearchPath>
+    </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>HelpCardMaker</Name>
