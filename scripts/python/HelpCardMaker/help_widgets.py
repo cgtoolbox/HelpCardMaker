@@ -257,39 +257,81 @@ class Title(QtWidgets.QWidget, WidgetInterface):
 
 class Bullets(QtWidgets.QWidget, WidgetInterface):
 
-    def __init__(self, texts=["item1", "item2", "item3"], idx=0, parent=None):
+    def __init__(self, texts=["item1", "item2", "item3"], idx=0, numbered=False, parent=None):
         super(Bullets, self).__init__(parent=parent)        
         WidgetInterface.__init__(self, idx, parent=parent)
         
         self.bullets = []
+        self.numbered = numbered
 
         self.bullets_layout = QtWidgets.QVBoxLayout()
         self.bullets_layout.setSpacing(0)
         self.bullets_layout.setAlignment(QtCore.Qt.AlignTop)
-        for text in texts:
-            w = Bullet(text=text, parent=self)
+
+        for i, text in enumerate(texts):
+
+            if self.numbered:
+                bullet_id = i+1
+            else:
+                bullet_id = 0
+
+            w = Bullet(text=text, bullet_id=bullet_id, parent=self)
             self.bullets_layout.addWidget(w)
             self.bullets.append(w)
 
         self.main_layout.addLayout(self.bullets_layout)
+        self.main_layout.addSpacing(1)
+        
+        self.mode_btn = QtWidgets.QPushButton("")
+        self.mode_btn.setFixedHeight(32)
+        self.mode_btn.setFixedWidth(32)
+        self.mode_btn.setIconSize(QtCore.QSize(32, 32))
+        self.mode_btn.setFlat(True)
+        self.mode_btn.clicked.connect(self.swtich_mode)
+        if self.numbered:
+            self.mode_btn.setIcon(get_icon("numbering"))
+        else:
+            self.mode_btn.setIcon(get_icon("bullet"))
+        self.main_layout.addWidget(self.mode_btn)
 
         self.create_delete_btn()
         self.setLayout(self.main_layout)
+
+    def swtich_mode(self):
+
+        if self.numbered:
+            self.numbered = False
+            self.mode_btn.setIcon(get_icon("bullet"))
+        else:
+            self.numbered = True
+            self.mode_btn.setIcon(get_icon("numbering"))
+
+        self.refresh_bullets_icons()
 
     def add_bullet(self, w, text=""):
         
         if text == "":
             text = "item" + str(len(self.bullets) + 1)
 
-        nw = Bullet(text=text, parent=self)
+        
         idx = self.bullets.index(w) + 1
+        n_bullets = len(self.bullets)
+        
+        if self.numbered:
+            nw = Bullet(text=text, bullet_id=idx+1,
+                        parent=self)
+        else:
+            nw = nw = Bullet(text=text, parent=self)        
 
-        if idx == len(self.bullets):
+        if idx == n_bullets:
             self.bullets_layout.addWidget(nw)
             self.bullets.append(nw)
         else:
             self.bullets.insert(idx, nw)
             self.bullets_layout.insertWidget(idx, nw)
+
+        if self.numbered:
+            self.refresh_bullets_icons()
 
     def remove_bullet(self, w):
 
@@ -299,24 +341,39 @@ class Bullets(QtWidgets.QWidget, WidgetInterface):
             w.setParent(None)
             self.bullets.pop(idx)
             w.deleteLater()
+        
+        if self.numbered:
+            self.refresh_bullets_icons()
+
+    def refresh_bullets_icons(self):
+
+        for i, b in enumerate(self.bullets):
+            if self.numbered:
+                b.bullet_id = i+1
+                b.update_bullet_shape()
+            else:
+                b.bullet_id = 0
+                b.update_bullet_shape()
 
     def output(self):
         
         return "//BULLETS\n" + '\n'.join([w.output() for w in self.bullets])
-
+        
 class Bullet(QtWidgets.QWidget, WidgetInterface):
     """ Text block formatted with a small bullet icon
     """
-    def __init__(self, text="", idx=0, parent=None):
+    def __init__(self, text="", idx=0, bullet_id=0, parent=None):
         super(Bullet, self).__init__(parent=parent)        
         WidgetInterface.__init__(self, idx, show_handle=False, parent=parent)
         
+        self.bullet_id = bullet_id
+
         ico_lay = QtWidgets.QVBoxLayout()
         ico_lay.setContentsMargins(5,5,5,5)
         self.ico = QtWidgets.QLabel("")
-        self.ico.setFixedSize(10,10)
-        self.ico.setPixmap(get_icon("s_dot").pixmap(6,6))
+        self.ico.setFixedSize(18,22)
         self.ico.setAlignment(QtCore.Qt.AlignTop)
+        
         ico_lay.addWidget(self.ico)
 
         self.main_layout.addLayout(ico_lay)
@@ -325,7 +382,29 @@ class Bullet(QtWidgets.QWidget, WidgetInterface):
         self.text.text.keyPressEvent = self._keyPressEvent
         self.main_layout.addWidget(self.text)
             
+        self.update_bullet_shape()
         self.setLayout(self.main_layout)
+
+    def update_bullet_shape(self):
+        
+        if self.bullet_id > 0:
+            pixm = QtGui.QPixmap(22, 22)
+            pixm.fill(QtGui.QColor(255, 255, 255, 255))
+            self._painter = QtGui.QPainter(pixm)
+            font = QtGui.QFont()
+            font.setBold(True)
+            font.setPixelSize(12)
+            self._painter.setFont(font)
+            self._painter.setPen(QtGui.QColor(102, 102, 102))
+            self._painter.setBrush(QtGui.QBrush(QtCore.Qt.SolidPattern))
+            self._painter.drawText(5, 12, str(self.bullet_id))
+            self._painter.end()
+            self.ico.setPixmap(pixm)
+        else:
+            self.ico.setPixmap(get_icon("s_dot").pixmap(6,6))
+
+        self.ico.update()
+        self.ico.repaint()
 
     def _keyPressEvent(self, e):
         
@@ -363,8 +442,11 @@ class Bullet(QtWidgets.QWidget, WidgetInterface):
         return WidgetInterface.dragMoveEvent(self, event)
 
     def output(self):
-
-        return '* ' + self.text.toPlainText().replace('\n', ' ')
+        
+        if self.bullet_id > 0:
+            return '# ' + self.text.toPlainText().replace('\n', ' ')
+        else:
+            return '* ' + self.text.toPlainText().replace('\n', ' ')
 
 class _tiw(QtWidgets.QFrame, WidgetInterface):
     """ Base class for Tips, Warning and Info widgets

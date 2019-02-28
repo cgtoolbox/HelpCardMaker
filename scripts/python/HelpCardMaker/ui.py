@@ -24,7 +24,7 @@ class MainPanel(QtWidgets.QMainWindow):
     """
     def __init__(self, parent=None):
         super(MainPanel, self).__init__(parent=parent)
-
+        
         cw = QtWidgets.QWidget()
 
         self.setProperty("houdiniStyle", True)
@@ -484,16 +484,20 @@ class MainPanel(QtWidgets.QMainWindow):
             w = Title(title_type=TitleType.TITLE, text=text, parent=self)
 
         elif cluster == "BULLETS":
-
+            
+            numbered = False
             cleaned_data = []
             for _d in data:
                 if _d.startswith("* "):
                     cleaned_data.append(_d[2:])
+                elif _d.startswith("# "):
+                    cleaned_data.append(_d[2:])
+                    numbered = True
                 else:
                     cleaned_data.append(_d)
 
             text = "".join(cleaned_data)
-            w = Bullets(texts=cleaned_data, parent=self)
+            w = Bullets(texts=cleaned_data, numbered=numbered, parent=self)
 
         elif cluster == "TEXTBOX":
             title = data[0].split(':box:')[-1]
